@@ -8,7 +8,7 @@
     <div class="container_authentication right-panel-active" id="container">
         <div class="form-container sign-up-container">
             <form class="form_authentication" id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-                <h1 class="title_authentication">Create Account</h1>
+                <h2 class="title_authentication text-uppercase">Create account</h2>
                 <div class="social-container">
                     <a href="#" class="social link_authentication">
                         <i class="fab fa-facebook-f"></i>
@@ -21,19 +21,35 @@
                     </a>
                 </div>
                 <span class="option_authentication">you can also register using a username.</span>
+                @* <div asp-validation-summary="All" class="text-danger"></div> *@
                 @*** Input Username ***@
                 <input asp-for="Input.UserName" class="inp_authentication" autocomplete="username" aria-required="true" placeholder="Username_123" />
                 <span asp-validation-for="Input.UserName" class="text-danger"></span>
 
                 @*** Input Password ***@
-                <input asp-for="Input.Password" class="inp_authentication" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <div class="password-container w-100 mt-2  position-relative">
+                    <input asp-for="Input.Password" class="inp_authentication pr-5"
+                           id="Password-field" type="password" autocomplete="current-password"
+                           aria-required="true" placeholder="Confirm password" />
+                    <button class="btn toggle-password position-absolute" type="button" tabindex="-1"
+                            style="right: 10px; top: 50%; transform: translateY(-50%);">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                </div>
                 <span asp-validation-for="Input.Password" class="text-danger"></span>
 
-                <input asp-for="Input.ConfirmPassword" class="inp_authentication" autocomplete="new-password" aria-required="true" placeholder="Confirm password" />
+                <div class="password-container w-100 mt-2 position-relative">
+                    <input asp-for="Input.ConfirmPassword" class="inp_authentication pr-5"
+                           id="confirmPassword-field" type="password" autocomplete="current-password"
+                           aria-required="true" placeholder="Confirm password" />
+                    <button class="btn toggle-password position-absolute" type="button" tabindex="-1"
+                            style="right: 10px; top: 50%; transform: translateY(-50%);">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                </div>
                 <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
 
                 @*** Button Form ***@
-                @* <button id="registerSubmit" type="submit" class="btn_authentication">Sign Up</button> *@
                 <button id="registerSubmit" type="submit" class="btn_authentication">Register</button>
             </form>
         </div>
@@ -55,60 +71,28 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-}
+    <script>
+        function togglePasswordVisibility(fieldId, toggleButton) {
+            const passwordField = document.getElementById(fieldId);
+            const icon = toggleButton.querySelector('i');
 
-@* <div class="row">
-    <div class="col-md-4">
-        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-            <h2>Create a new account.</h2>
-            <hr />
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label asp-for="Input.Email">Email</label>
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
-            </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label asp-for="Input.Password">Password</label>
-                <span asp-validation-for="Input.Password" class="text-danger"></span>
-            </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label asp-for="Input.ConfirmPassword">Confirm Password</label>
-                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-            </div>
-            <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </form>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            @{
-                if ((Model.ExternalLogins?.Count ?? 0) == 0)
-                {
-                    <div>
-                        <p>
-                            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">article
-                            about setting up this ASP.NET application to support logging in via external services</a>.
-                        </p>
-                    </div>
-                }
-                else
-                {
-                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
-                        <div>
-                            <p>
-                                @foreach (var provider in Model.ExternalLogins!)
-                                {
-                                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
-                                }
-                            </p>
-                        </div>
-                    </form>
-                }
+            if (passwordField) {
+                const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordField.setAttribute('type', type);
+
+                // Toggle the icon class
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            } else {
+                console.error(`Field with ID '${fieldId}' not found.`);
             }
-        </section>
-    </div>
-</div> *@
+        }
+
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', function () {
+                const fieldId = this.previousElementSibling.id;
+                togglePasswordVisibility(fieldId, this);
+            });
+        });
+    </script>
+}

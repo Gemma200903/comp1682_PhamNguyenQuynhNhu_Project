@@ -40,10 +40,6 @@ namespace RaWMVC.Data
             Builder
                 .ApplyConfiguration(new ChapterReadCountConfiguration());
             Builder
-                .ApplyConfiguration(new ReadingListsConfiguration());
-            Builder
-                .ApplyConfiguration(new ReadingListStoryConfiguration());
-            Builder
                 .ApplyConfiguration(new CommentConfiguration());
             Builder
                 .ApplyConfiguration(new LikeConfiguration());
@@ -69,8 +65,6 @@ namespace RaWMVC.Data
         public DbSet<Medium> Media { get; set; }
         public DbSet<ChapterReadCount> ChapterReadCounts { get; set; }
         public DbSet<Library> Libraries { get; set; }
-        public DbSet<ReadingList> ReadingLists { get; set; }
-        public DbSet<ReadingListStory> ReadingListStories { get; set; }
         public DbSet<Comment> Comments{ get; set; }
         public DbSet<Like> Like{ get; set; }
         public DbSet<Follow> Follows{ get; set; }

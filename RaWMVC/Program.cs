@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RaWMVC.Areas.Identity.Data;
+using AspNetCoreHero.ToastNotification;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("RaWMVCContextConnection") ?? throw new InvalidOperationException("Connection string 'RaWMVCContextConnection' not found.");
@@ -20,6 +21,16 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+builder.Services.AddHostedService<StoryDeletionService>();
+builder.Services.AddHostedService<NotificationCleanupService>();
+
+builder.Services.AddNotyf(config =>
+{
+    config.DurationInSeconds = 15;
+    config.IsDismissable = true;
+    config.Position = NotyfPosition.BottomRight;
+}
+);
 // AddContext
 builder.Services.AddDbContext<RaWDbContext>();
 builder.Services.AddDbContext<RaWIdentityContext>();

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AspNetCoreHero.ToastNotification.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NuGet.Protocol.Plugins;
@@ -13,9 +14,11 @@ namespace RaWMVC.Controllers
     public class StatusController : Controller
     {
         private readonly RaWDbContext _context;
-        public StatusController(RaWDbContext context)
+        private readonly INotyfService _notyf;
+        public StatusController(RaWDbContext context, INotyfService notyf)
         {
             _context = context;
+            _notyf = notyf;
         }
         public IActionResult Index()
         {
@@ -25,6 +28,37 @@ namespace RaWMVC.Controllers
         {
             try
             {
+                var existingStatus = await _context.Status
+                                        .FirstOrDefaultAsync(t => t.StatusName == statusVM.StatusName.Trim());
+
+                if (existingStatus != null)
+                {
+                    //=== If the tag already exists, display an error message ===//
+                    _notyf.Warning("Status name already exists.");
+
+
+                    //=== Return the view with the existing data to allow the user to correct it ===//
+                    return RedirectToAction(nameof(Index), statusVM);
+                }
+
+                if (statusVM.StatusName.Length > 75)
+                {
+                    //=== Nếu độ dài của TagName vượt quá 75 ký tự, hiển thị thông báo cảnh báo ===//
+                    _notyf.Warning("Tag name is too long. Please shorten it.");
+
+                    //=== Trả về view với dữ liệu hiện tại để người dùng chỉnh sửa ===//
+                    return RedirectToAction(nameof(Index), statusVM);
+                }
+
+                if (statusVM.StatusDescription.Length > 200)
+                {
+                    //=== Nếu độ dài của TagName vượt quá 75 ký tự, hiển thị thông báo cảnh báo ===//
+                    _notyf.Warning("Status description is too long. Please shorten it.");
+
+                    //=== Trả về view với dữ liệu hiện tại để người dùng chỉnh sửa ===//
+                    return RedirectToAction(nameof(Index), statusVM);
+                }
+
                 var countStatus = await _context.Status.CountAsync();
                 var newSttaus = new Status
                 {
@@ -37,7 +71,7 @@ namespace RaWMVC.Controllers
                 await _context.SaveChangesAsync();
 
                 //=== Display successfully saved message ===//
-                TempData["Message"] = "Added tag successfully.";
+                _notyf.Success("Status added successfully.");
 
                 //=== Return to continue creating ===//
                 return RedirectToAction(nameof(Index));
@@ -45,10 +79,10 @@ namespace RaWMVC.Controllers
             catch
             {
                 //=== Display faily saved message ===//
-                TempData["Message"] = "Failed to add status.";
+                _notyf.Error("Failed to add status.");
 
                 //=== If not successful, check the data again ===//
-                return View(nameof(Index));
+                return View(nameof(Index), statusVM);
             }
         }
 		// GET: StatusController/Edit/5
@@ -81,16 +115,47 @@ namespace RaWMVC.Controllers
                 status.StatusName = statusVM.StatusName.Trim();
                 status.StatusDescription = statusVM.StatusDescription?.Trim();
 
+                var existingStatus = await _context.Status
+                                        .FirstOrDefaultAsync(t => t.StatusName == statusVM.StatusName.Trim());
+
+                if (existingStatus != null)
+                {
+                    //=== If the tag already exists, display an error message ===//
+                    _notyf.Warning("Status name already exists.");
+
+
+                    //=== Return the view with the existing data to allow the user to correct it ===//
+                    return RedirectToAction(nameof(Index), statusVM);
+                }
+
+                if (statusVM.StatusName.Length > 75)
+                {
+                    //=== Nếu độ dài của TagName vượt quá 75 ký tự, hiển thị thông báo cảnh báo ===//
+                    _notyf.Warning("Tag name is too long. Please shorten it.");
+
+                    //=== Trả về view với dữ liệu hiện tại để người dùng chỉnh sửa ===//
+                    return RedirectToAction(nameof(Index), statusVM);
+                }
+
+                if (statusVM.StatusDescription.Length > 200)
+                {
+                    //=== Nếu độ dài của TagName vượt quá 75 ký tự, hiển thị thông báo cảnh báo ===//
+                    _notyf.Warning("Status description is too long. Please shorten it.");
+
+                    //=== Trả về view với dữ liệu hiện tại để người dùng chỉnh sửa ===//
+                    return RedirectToAction(nameof(Index), statusVM);
+                }
+
                 await _context.SaveChangesAsync();
 
-                TempData["Message"] = "Edited status successfully.";
+                _notyf.Success("Edited status successfully.");
 
-				return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Index));
 			}
 			catch
             {
-                TempData["Message"] = "Failed to edit status";
-                
+                _notyf.Error("Failed to edit status");
+
                 return View(nameof(Index), statusVM); 
             }
         }
@@ -126,6 +191,7 @@ namespace RaWMVC.Controllers
                     _context.Status.Remove(statusVM);
                 }
                 await _context.SaveChangesAsync();
+                message = "Delete status successfully";
                 status = true;
             }
             catch

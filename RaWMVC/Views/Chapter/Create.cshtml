@@ -32,11 +32,10 @@
                                asp-for="ChapterTitle"
                                placeholder="Untitled Part" required />
                     </div>
-                    <textarea contenteditable="true" 
-                        asp-for="ChapterContent" 
-                        id="chapterContent"
-                        class="mt-4 border border-0 w-100 h-100 w-100" placeholder="Click here to start writing..........."
-                        oninput="autoResize(this)" required>
+                    <textarea id="chapterContent"
+                              class="mt-4 border border-0 w-100 h-100"
+                              placeholder="Click here to start writing..........."
+                              required>
                     </textarea>
                 </div>
             </section>
@@ -45,9 +44,23 @@
 </main>
 @section Scripts {
     <script>
+        // Initialize TinyMCE editor for chapterContent
+        tinymce.init({
+            selector: '#chapterContent',
+            height: 500,
+            menubar: false,
+            plugins: 'lists link image media',
+            toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link image media',
+            setup: function (editor) {
+                editor.on('change', function () {
+                    editor.save();
+                });
+            }
+        });
+
         function createChapter(storyId, isPublish) {
-            const chapterTitle = document.getElementById("chapterTitle").value; // Giả sử bạn có input với id "chapterTitle"
-            const chapterContent = document.getElementById("chapterContent").value; // Giả sử bạn có textarea với id "chapterContent"
+            const chapterTitle = document.getElementById("chapterTitle").value; // Get chapter title
+            const chapterContent = tinymce.get("chapterContent").getContent(); // Get content from TinyMCE editor
 
             const data = {
                 ChapterTitle: chapterTitle,
@@ -61,32 +74,12 @@
                 url: "/Chapter/Create",
                 data: data,
                 success: function (response) {
-                    if (response.success) {
-                        // Xử lý thành công, có thể chuyển hướng hoặc thông báo
-                        alert(response.message);
-                    } else {
-                        // Xử lý lỗi
-                        alert(response.message);
-                    }
+                    toastr.success(response.message);
                 },
                 error: function () {
                     alert("An error occurred while creating the chapter.");
                 }
             });
         }
-
-
-        function autoResize(textarea) {
-            // Đặt chiều cao thành 'auto' để nó tự động co lại sau khi nội dung thay đổi
-            textarea.style.height = 'auto';
-
-            // Đặt lại chiều cao dựa trên nội dung mới (scrollHeight là chiều cao nội dung)
-            textarea.style.height = textarea.scrollHeight + 'px';
-        }
-
-        // Gọi hàm này để tự động điều chỉnh chiều cao khi tải trang với nội dung đã có
-        window.onload = function () {
-            autoResize(document.getElementById('chapterContent'));
-        };
     </script>
 }

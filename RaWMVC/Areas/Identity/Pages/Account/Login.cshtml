@@ -11,7 +11,6 @@
 
         @*** log in form ***@
         <div class="form-container sign-in-container">
-
             <form class="form_authentication"  id="account" method="post">
                 <h1 class="title_authentication">sign in</h1>
                 <div class="social-container">
@@ -26,11 +25,21 @@
                     </a>
                 </div>
                 <span class="option_authentication">or use your account</span>
+                <div asp-validation-summary="All" class="text-danger"></div>
                 @*** input email ***@
                 <input asp-for="Input.UserName" class="inp_authentication" autocomplete="username" aria-required="true" placeholder="uername_123" />
                 <span asp-validation-for="Input.UserName" class="text-danger"></span>
                 @*** input password ***@
-                <input asp-for="Input.Password" class="inp_authentication" autocomplete="current-password" aria-required="true" placeholder="password" />
+               @*  <input asp-for="Input.Password" class="inp_authentication" autocomplete="current-password" aria-required="true" placeholder="password" /> *@
+                <div class="position-relative w-100">
+                    <input asp-for="Input.Password" class="inp_authentication pr-5" autocomplete="current-password"
+                           aria-required="true" placeholder="password." />
+                    <button class="btn toggle-password position-absolute" type="button" tabindex="-1"
+                            style="right: 15px; top: 20%;">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
                 <span asp-validation-for="Input.Password" class="text-danger"></span>
                 @*** button form ***@
                 <div class="checkbox">
@@ -62,4 +71,28 @@
 </div>
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        function togglePasswordVisibility(fieldId, toggleButton) {
+            const passwordField = document.getElementById(fieldId);
+            const icon = toggleButton.querySelector('i');
+
+            if (passwordField) {
+                const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordField.setAttribute('type', type);
+
+                // Toggle the icon class
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            } else {
+                console.error(`Field with ID '${fieldId}' not found.`);
+            }
+        }
+
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', function () {
+                const fieldId = this.previousElementSibling.id;
+                togglePasswordVisibility(fieldId, this);
+            });
+        });
+    </script>
 }

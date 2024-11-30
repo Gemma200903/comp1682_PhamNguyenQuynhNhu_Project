@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using AspNetCoreHero.ToastNotification.Abstractions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using RaWMVC.Areas.Identity.Data;
 using RaWMVC.Data;
-using RaWMVC.ViewModels;
-using Microsoft.EntityFrameworkCore;
 using RaWMVC.ViewComponents;
-using RaWMVC.Data.Entities;
+using RaWMVC.ViewModels;
 
 namespace RaWMVC.Controllers
 {
@@ -18,22 +18,23 @@ namespace RaWMVC.Controllers
         private readonly UserManager<RaWMVCUser> _userManager;
         private readonly RoleManager<RaWMVCRole> _roleManager;
         private readonly ILogger<UserController> _logger;
+        private readonly INotyfService _notyf;
 
         public UserController(RaWDbContext context, UserManager<RaWMVCUser> userManager,
             SignInManager<RaWMVCUser> signInManager, RoleManager<RaWMVCRole> roleManager,
-            ILogger<UserController> logger)
+            ILogger<UserController> logger, INotyfService notyf)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _logger = logger;
+            _notyf = notyf;
         }
 
         public async Task<IActionResult> Index()
         {
-            var roles = await _roleManager.Roles.ToListAsync();
-            ViewBag.Roles = roles;
+            ViewBag.Roles = await GetSelectListRole(null);
 
             return View();
         }
@@ -42,24 +43,48 @@ namespace RaWMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AccountViewModel accountVM)
         {
-            var returnURL = "~/Identity/Account/Login";
+            // Kiểm tra nếu Username hoặc Password để trống
+            if (string.IsNullOrWhiteSpace(accountVM.Username))
+            {
+                _notyf.Error("Username is required.");
+            }
 
-            // Create a new user with the provided username
+            if (string.IsNullOrWhiteSpace(accountVM.Password))
+            {
+                _notyf.Error("Password is required.");
+            }
+
+            // Kiểm tra độ dài của Username và Password
+            if (accountVM.Username?.Length > 256)
+            {
+                _notyf.Error("Username cannot exceed 256 characters.");
+            }
+
+            if (accountVM.Password?.Length > 30)
+            {
+                _notyf.Error("Password cannot exceed 30 characters.");
+            }
+
+            // Nếu có lỗi, trả về View để người dùng chỉnh sửa
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Roles = await GetSelectListRole(accountVM.RoleId);
+                return View(nameof(Index), accountVM);
+            }
+
             var newUser = new RaWMVCUser
             {
-                UserName = accountVM.Username // Use Username instead of Email
+                UserName = accountVM.Username
             };
 
-            // Create the user with the provided password
             var result = await _userManager.CreateAsync(newUser, accountVM.Password);
             if (result.Succeeded)
             {
                 _logger.LogInformation("User created a new account.");
 
-                // Check and assign the role
-                if (!string.IsNullOrEmpty(accountVM.Role))
+                if (!string.IsNullOrEmpty(accountVM.RoleId))
                 {
-                    var role = await _roleManager.FindByNameAsync(accountVM.Role);
+                    var role = await _roleManager.FindByIdAsync(accountVM.RoleId);
                     if (role != null)
                     {
                         await _userManager.AddToRoleAsync(newUser, role.Name);
@@ -67,22 +92,28 @@ namespace RaWMVC.Controllers
                     else
                     {
                         ModelState.AddModelError(string.Empty, "Role does not exist.");
-                        return View(accountVM);
+                        ViewBag.Roles = await GetSelectListRole(accountVM.RoleId);
+                        return View(nameof(Index), accountVM);
                     }
                 }
 
-                // Sign in the user directly
                 await _signInManager.SignInAsync(newUser, isPersistent: false);
-                return LocalRedirect(returnURL);
+                _notyf.Success("Account created successfully with role.");
+                return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                // Xử lý khi không tạo được tài khoản
+                _logger.LogWarning("Failed to create user account.");
+                _notyf.Error("Failed to create account. Please try again.");
             }
 
-            // Handle errors and return the view with the validation messages
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(string.Empty, error.Description);
             }
-
-            return View(accountVM);
+            ViewBag.Roles = await GetSelectListRole(accountVM.RoleId);
+            return View(nameof(Index));
         }
 
         [HttpGet]
@@ -94,13 +125,13 @@ namespace RaWMVC.Controllers
             var currentRoles = await _userManager.GetRolesAsync(user);
             var currentRole = currentRoles.FirstOrDefault();
 
-            ViewBag.Roles = await _roleManager.Roles.ToListAsync();
+            ViewBag.Roles = await GetSelectListRole(null);
 
             var model = new AccountViewModel
             {
                 Id = user.Id,
                 Username = user.UserName, // Change Email to Username
-                Role = currentRole
+                RoleName = currentRole
             };
 
             return View(nameof(Index), model);
@@ -115,8 +146,8 @@ namespace RaWMVC.Controllers
                 var account = await _userManager.FindByIdAsync(accountVM.Id);
                 if (account == null) return BadRequest("User not found");
 
-                // Update user's username
-                account.UserName = accountVM.Username; // Change Email to Username
+                // Cập nhật username
+                account.UserName = accountVM.Username;
 
                 var updateResult = await _userManager.UpdateAsync(account);
                 if (!updateResult.Succeeded)
@@ -125,44 +156,48 @@ namespace RaWMVC.Controllers
                     {
                         ModelState.AddModelError(string.Empty, error.Description);
                     }
-                    return View(accountVM);
+                    _notyf.Error("Account updated failed!");
+
+                    ViewBag.Roles = await GetSelectListRole(accountVM.RoleId);
+                    return View("Index", accountVM); // Trả về form Index
                 }
 
-                // Get the user's current roles
+                // Xử lý vai trò
                 var currentRoles = await _userManager.GetRolesAsync(account);
 
-                ViewBag.Roles = await _roleManager.Roles.ToListAsync();
-
-                // Remove the current roles if any
-                if (currentRoles.Count > 0)
+                if (currentRoles.Any())
                 {
+                    ViewBag.Roles = await GetSelectListRole(null);
+
                     await _userManager.RemoveFromRolesAsync(account, currentRoles);
                 }
 
-                // Assign the new role (if a valid one was selected)
-                if (!string.IsNullOrEmpty(accountVM.Role))
+                if (!string.IsNullOrEmpty(accountVM.RoleId))
                 {
-                    var newRole = await _roleManager.FindByNameAsync(accountVM.Role);
+                    var newRole = await _roleManager.FindByIdAsync(accountVM.RoleId);
                     if (newRole != null)
                     {
+                        ViewBag.Roles = await GetSelectListRole(null);
+
                         await _userManager.AddToRoleAsync(account, newRole.Name);
                     }
                     else
                     {
                         ModelState.AddModelError(string.Empty, "Selected role does not exist.");
-                        return View(accountVM);
+                        ViewBag.Roles = await GetSelectListRole(accountVM.RoleId);
+                        return View("Index", accountVM);
                     }
                 }
 
-                // Display a success message and redirect
-                TempData["Message"] = "Account updated successfully.";
+                _notyf.Success("Account updated successfully.");
                 return RedirectToAction(nameof(Index));
             }
-            catch
+            catch (Exception ex)
             {
-                TempData["Message"] = "Failed to edit account.";
+                _notyf.Error($"Failed to edit account. Error: {ex.Message}");
 
-                return View(nameof(Index), accountVM);
+                ViewBag.Roles = await GetSelectListRole(accountVM.RoleId);
+                return View("Index", accountVM);
             }
         }
 
@@ -201,6 +236,26 @@ namespace RaWMVC.Controllers
         public IActionResult ReloadAccountList()
         {
             return ViewComponent(nameof(AccountList));
+        }
+
+        public async Task<SelectList> GetSelectListRole(string? idChosen)
+        {
+            var listRole = await _roleManager.Roles
+                .OrderBy(c => c.Position)
+                .AsNoTracking()
+                .Select(c => new RoleViewModel
+                {
+                    Id = c.Id,
+                    Name = $"{c.Position}. {c.Name}"
+                })
+                .ToListAsync();
+
+            listRole.Insert(0, new RoleViewModel { Id = "", Name = "=== Choose Role ===" });
+
+            var selectedItem = !string.IsNullOrEmpty(idChosen) ? idChosen : listRole[0].Id;
+
+            var selectList = new SelectList(listRole, "Id", "Name", selectedItem);
+            return selectList;
         }
     }
 }

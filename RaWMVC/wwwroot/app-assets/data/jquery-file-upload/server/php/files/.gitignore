@@ -1,3 +1,22 @@
+# Lo?i tr? t?t c? file và th? m?c
 *
+
+# Cho phép các file quan tr?ng (nh? code, c?u hình, v.v.)
+!/
+!*.csproj
+!*.sln
+!*.cs
+!Program.cs
+!Views/
+!Controllers/
+!Models/
+!wwwroot/
+!appsettings.json
 !.gitignore
 !.htaccess
+
+# Lo?i tr? các file và th? m?c t?m c?a Visual Studio
+.vs/
+bin/
+obj/
+*.user

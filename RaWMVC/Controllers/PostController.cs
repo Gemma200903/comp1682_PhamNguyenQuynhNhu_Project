@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using RaWMVC.Areas.Identity.Data;
 using RaWMVC.Data;
 using RaWMVC.Data.Entities;
-using System.Composition;
 
 namespace RaWMVC.Controllers
 {
@@ -18,10 +16,6 @@ namespace RaWMVC.Controllers
         {
             _context = context;
             _userManager = userManager;
-        }
-        public IActionResult Index()
-        {
-            return View();
         }
 
         [HttpPost]
@@ -83,7 +77,10 @@ namespace RaWMVC.Controllers
                 return Json(new { success = false, message = "Post ID cannot be empty." });
             }
 
+            // Lấy thông tin người dùng hiện tại
             var user = await _userManager.GetUserAsync(User);
+
+            // Tìm bài viết theo idPost
             var post = await _context.Posts.FindAsync(idPost);
 
             if (post == null)
@@ -91,107 +88,17 @@ namespace RaWMVC.Controllers
                 return Json(new { success = false, message = "Post not found." });
             }
 
-            //=== Optionally check if the user is authorized to delete this post ===//
-            if (post.UserId != user.Id)
+            // Kiểm tra quyền: người tạo bài viết hoặc admin
+            if (post.UserId != user.Id && !User.IsInRole("Admintrator"))
             {
                 return Json(new { success = false, message = "You do not have permission to delete this post." });
             }
 
+            // Xóa bài viết
             _context.Posts.Remove(post);
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, message = "The post has been deleted successfully." });
         }
-
-        [HttpPost]
-        public async Task<IActionResult> CreateComment(Guid postId, string content)
-        {
-            var user = await _userManager.GetUserAsync(User);
-
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                ModelState.AddModelError("", "Comment content cannot be left blank.");
-                return RedirectToAction("Index", new { userId = user.Id }); // Redirect lại về trang profile
-            }
-
-            var postExists = await _context.Posts
-                .Where(p => p.PostId == postId)
-                .Select(p => new { p.UserId }) // Get the userId of the post owner
-                .FirstOrDefaultAsync();
-
-            if (postExists == null)
-            {
-                ModelState.AddModelError("", "Post does not exist.");
-                return RedirectToAction("Index", "Profile", new { userId = postExists.UserId });
-            }
-
-            var reply = new Reply
-            {
-                ReplyId = Guid.NewGuid(),
-                PostId = postId,
-                ReplyContent = content,
-                CreateAt = DateTime.Now,
-                UserId = user.Id,
-                ProfilePicture = user.ProfilePicture,
-                Username = user.UserName
-            };
-
-            _context.Replies.Add(reply);
-
-            // Create a notification for the post owner
-            var notification = new Notification
-            {
-                UserId = postExists.UserId, // UserId of the post owner
-                Username = user.UserName, // UserName of the reply owner
-                Message = $"{user.UserName} replied to your post.",
-                CreatedDate = DateTime.Now
-            };
-
-            _context.Notifications.Add(notification);
-
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction("Index", "Profile", new { userId = postExists.UserId });
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> DeleteComment(Guid idPost, Guid idReply)
-        {
-            bool isDeleted = false;
-            string message = "Comment not found.";
-
-            try
-            {
-                var reply = await _context.Replies
-                    .Where(c => c.PostId == idPost && c.ReplyId == idReply)
-                    .SingleOrDefaultAsync();
-
-                if (reply != null)
-                {
-                    var currentUser = await _userManager.GetUserAsync(User);
-
-                    // Check comment deletion permissions (only allow creator or admin to delete)
-                    if (reply.UserId == currentUser.Id || User.IsInRole("Admin"))
-                    {
-                        _context.Replies.Remove(reply);
-                        await _context.SaveChangesAsync();
-
-                        isDeleted = true;
-                        message = "Comment deleted successfully.";
-                    }
-                    else
-                    {
-                        message = "You do not have permission to delete this comment.";
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                message = "An error occurred while deleting the comment: " + ex.Message;
-            }
-
-            return Json(new { isDeleted, message });
-        }
-
     }
 }

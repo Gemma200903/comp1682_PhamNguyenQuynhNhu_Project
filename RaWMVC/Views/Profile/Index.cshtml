@@ -1,8 +1,14 @@
 ﻿@model RaWMVC.ViewModels.ProfileViewModel
+@using Microsoft.AspNetCore.Identity
+@using RaWMVC.Areas.Identity.Data
+@inject SignInManager<RaWMVCUser> SignInManager
+@inject UserManager<RaWMVCUser> UserManager
 
 @{
     ViewData["Title"] = "Profile";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var user = await UserManager.GetUserAsync(User);
 }
 
 <main class="main_container">
@@ -17,28 +23,27 @@
                     <p class="mt-3"><span>@Model.UserName</span></p>
                 </div>
                 <div class="more_infor_left">
-                    @if (Model.IsFollowing)
+                    @if (user.Id != Model.UserId)
                     {
-                        <button type="button" class="btn_follow mt-3" onclick="toggleFollow('@Model.UserId', true)">
-                            Unfollow
-                        </button>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn_follow mt-3" onclick="toggleFollow('@Model.UserId', false)">
-                            Follow
-                        </button>
+                        @if (Model.IsFollowing)
+                        {
+                            <button type="button" class="btn_follow mt-3" onclick="toggleFollow('@Model.UserId', true)">
+                                Unfollow
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn_follow mt-3" onclick="toggleFollow('@Model.UserId', false)">
+                                Follow
+                            </button>
+                        }
                     }
                 </div>
             </div>
-            <div class="more_infor_user d-flex justify-content-between">
+            <div class="more_infor_user w-50 d-flex justify-content-between">
                 <p class="conversation">
-                    <span>0</span>
+                    <span>@Model.Posts.Count</span>
                     Post
-                </p>
-                <p class="list">
-                    <span>@Model.ReadingListCount</span>
-                    Reading Lists
                 </p>
                 <p class="follower">
                     <span>@Model.FollowersCount</span>
@@ -66,7 +71,6 @@
                 <li class="active">About me</li>
                 <li>Conversation</li>
                 <li>Following</li>
-                <li>Reading Lists</li>
             </ul>
         </div>
 
@@ -85,7 +89,15 @@
                     </div>
                     <h4 class="fw-bold mt-2">Following</h4>
                     <div class="following d-flex flex-wrap">
-                        @* Add following users here *@
+                        @if (Model.FollowingUsers != null && Model.FollowingUsers.Any())
+                        {
+                            @foreach (var following in Model.FollowingUsers)
+                            {
+                                <img class="rounded-circle"
+                                     src="@Url.Content(following.ProfilePicture)"
+                                     alt="" />
+                            }
+                        }
                     </div>
                     <h4 class="fw-bold mt-2">Share</h4>
                     <div class="share justify-content-evenly mb-3">
@@ -157,7 +169,7 @@
                     <textarea class="form-control" placeholder="what are you thinking?" rows="1" required></textarea>
                 </div>
                 <div class="icon-buttons ms-3">
-                <button class="btn btn-primary ms-2 mt-1 text-dark" type="button" onclick="creaetPost();">Posting</button>
+                    <button class="btn btn-primary ms-2 mt-1 text-dark" type="button" onclick="creaetPost();">Posting</button>
                 </div>
             </div>
             @if(Model.Posts != null)
@@ -203,7 +215,7 @@
                                                 <i class="fa-solid fa-ellipsis-vertical"></i>
                                             </button>
                                             <ul class="dropdown-menu">
-                                                <button onclick="deleteComment('@reply.PostId', '@reply.ReplyId')" class="btn">Delete</button>
+                                                <button onclick="deleteReply('@reply.PostId', '@reply.ReplyId')" class="btn">Delete</button>
                                             </ul>
                                         </div>
                                     </div>
@@ -211,7 +223,7 @@
                             }
                         }
                         <!-- Reply Input -->
-                        <form asp-action="CreateComment" asp-controller="Post" method="post">
+                        <form asp-action="Create" asp-controller="Reply" method="post">
                             <div class="reply-input">
                                 <input type="hidden" id="postId" name="postId" value="@post.PostId" />
                                 <textarea class="form-control" rows="1" name="content" placeholder="Write a reply..."></textarea>
@@ -243,26 +255,6 @@
                             <i class="fa-solid fa-circle-plus fs-5 text"></i>
                     </button>
                 </div>
-                <div class="reading_list_container">
-                    @if (Model.ReadingLists != null && Model.ReadingLists.Any())
-                    {
-                        foreach (var list in Model.ReadingLists)
-                        {
-                            <div class="reading_list_item ps-5 mt-4">
-                                <a href="@Url.Action("ListStory", "ReadingList", new { idReadingList = list.ReadingListsId })" class="d-flex text-dark text-decoration-none">
-                                    <img src="~/assets/img/booklist.jpg" />
-                                    <div class="reading_list_infor ms-3">
-                                        <p class="fs-5 text fw-bold">@list.Name</p>
-                                    </div>
-                                </a>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <p>You have no reading lists.</p>
-                    }
-                </div>
             </div>
         </div>
     </div>
@@ -288,50 +280,6 @@
             });
         });
 
-        //=== Create Reading List ===//
-        function modalShowCreateReadingList() {
-            $.ajax({
-                type: "GET",
-                url: "/ReadingList/Create",
-                success: function (data) {
-                    openModal(data, modalSize.large); // Mở modal với dữ liệu trả về
-                },
-                error: function (err) {
-                    console.error(err);
-                }
-            });
-        }
-
-        function createReadingList() {
-            let formData = new FormData();
-            formData.append("Name", document.getElementById("readingListName").value);
-
-            $.ajax({
-                type: "POST",
-                url: "/ReadingList/Create",
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (data) {
-                    if (data.success) {
-                        $('#addReadingListModal').modal('hide');
-                        alert("Reading List added to your library!");
-                        window.location.reload();
-                    } else {
-                        alert(data.message);
-                        document.getElementById("errorMessage").innerText = data.message;
-                    }
-                },
-                error: function (err) {
-                    if (err.status === 500) {
-                        alert("This reading list is already in your library.");
-                    } else {
-                        alert("Failed to add the reading list.");
-                    }
-                }
-            });
-        }
-
         //=== Follow function ===//
         function toggleFollow(followeeId) {
             $.ajax({
@@ -341,12 +289,15 @@
                     followeeId: followeeId
                 },
                 success: function (data) {
-                    alert("You are now following this user.");
-                    window.location.reload();
+                    toastr.success(data.message);
+
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 500);
                 },
                 error: function (err) {
-                    console.log("Error: ", err)
-                    alert("You can not to follow your account.");
+                    console.error("Error: ", err);
+                    alert("You cannot follow your own account.");
                 }
             });
         }
@@ -364,8 +315,10 @@
                 url: "/Post/Create",
                 data: { content: content },
                 success: function (response) {
-                    alert("The Post have been posted in your profile");
-                    window.location.reload();
+                    toastr.success(response.message);
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
                 },
                 error: function () {
                     alert("An error occurred. Please try again.");
@@ -380,34 +333,33 @@
                 url: "/Post/Delete",
                 data: { idPost },
                 success: function (response) {
-                    alert("The post has been deleted successfully.");
-                    window.location.reload();
+                    toastr.success(response.message);
+
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
                 },
                 error: function () {
                     alert("An error occurred. Please try again.");
                 }
             });
         }
-        //=== Delete Comment ===//
-        function deleteComment(idPost, idReply) {
+
+        //=== Delete Post ===//
+        function deleteReply(idPost, idReply) {
             $.ajax({
-                type: 'POST',
-                url: "/Post/DeleteComment",
-                data: {
-                    idPost: idPost,
-                    idReply: idReply
-                },
+                type: "POST",
+                url: "/Reply/Delete",
+                data: { idPost, idReply },
                 success: function (response) {
-                    if (response.status) {
-                        alert(response.message);
-                    }
-                    else {
-                        alert(response.message);
-                    }
-                    window.location.reload();
+                    toastr.success(response.message);
+
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 1500);
                 },
                 error: function () {
-                    alert("An error occurred while deleting the comment.");
+                    alert("An error occurred. Please try again.");
                 }
             });
         }

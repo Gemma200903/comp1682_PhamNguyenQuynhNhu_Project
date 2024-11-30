@@ -12,15 +12,16 @@
             </div>
             <div class="save_cancel mt-2 me-3">
                 <button type="button" class="btn_cancel">Cancel</button>
-@*                 <button type="submit"
-                        class="btn_save_storyD"
-                        onclick="editChapter('@Model.ChapterId');"
-                        style="min-width: 75px">
-                    Save
-                </button> *@
                 <button type="button" class="btn_save_storyD" onclick="editChapter('@Model.ChapterId', false);">Save</button>
-                <button type="button" class="btn_save_storyD" onclick="editChapter('@Model.ChapterId', true);">Publish</button>
-                <button type="button" class="btn_save_storyD">Preview</button>
+                @if(Model.IsPublished != true)
+                {
+                    @* <button type="button" class="btn_save_storyD" id="isPublish" onclick="editChapter('@Model.ChapterId', true);">Publish</button> *@
+                    <button type="button" class="btn_save_storyD" onclick="editChapter('@Model.ChapterId', true);">Publish</button>
+
+                }else
+                {
+                    <button type="button" class="btn_save_storyD">Preview</button>
+                }
             </div>
         </div>
     </div>
@@ -38,10 +39,9 @@
                                asp-for="ChapterTitle"
                                placeholder="Untitled Part" />
                     </div>
-                    <textarea contenteditable="true"
-                              asp-for="ChapterContent"
-                              id="chapterContent"
-                              class="mt-4 border border-0 w-100 h-100 w-100" placeholder="Click here to start writing...........">
+                    <textarea id="chapterContent" class="mt-4 border border-0 w-100 h-100" 
+                                placeholder="Click here to start writing..........." required>
+                        @Html.Raw(Model.ChapterContent)
                     </textarea>
                 </div>
             </section>
@@ -50,10 +50,26 @@
 </main>
 @section Scripts {
     <script>
+        tinymce.init({
+            selector: '#chapterContent',
+            height: 500,
+            menubar: false,
+            plugins: 'lists link image media',
+            toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link image media',
+            setup: function (editor) {
+                editor.on('change', function () {
+                    editor.save();
+                });
+                editor.setContent('@Html.Raw(Model.ChapterContent)');
+            }
+        });
+
         function editChapter(idChapter, isPublish) {
             let formData = new FormData(document.getElementById("editChapterForm"));
             formData.append("ChapterId", idChapter);
-            formData.append("isPublish", isPublish); // Thêm trạng thái xuất bản vào formData
+            formData.append("isPublish", isPublish);
+
+            formData.append("chapterContent", tinymce.get("chapterContent").getContent());
 
             $.ajax({
                 type: "POST",
@@ -63,7 +79,7 @@
                 contentType: false,
                 success: function (data) {
                     if (data.success) {
-                        alert("Chapter updated successfully!");
+                        toastr.success(data.message);
                         // Optionally clear form or redirect
                     } else {
                         alert("Error: " + data.message);

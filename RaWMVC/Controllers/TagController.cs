@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AspNetCoreHero.ToastNotification.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.Elfie.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using RaWMVC.Data;
 using RaWMVC.Data.Entities;
 using RaWMVC.ViewComponents;
@@ -13,13 +14,14 @@ namespace RaWMVC.Controllers
     public class TagController : Controller
     {
         private readonly RaWDbContext _context;
-        public TagController(RaWDbContext context)
+        private readonly INotyfService _notyf;
+        public TagController(RaWDbContext context, INotyfService notyf)
         {
             _context = context;
+            _notyf = notyf;
         }
         public IActionResult Index()
         {
-            TempData.Keep();
             return View();
         }
         // POST: TagController/Create
@@ -29,20 +31,39 @@ namespace RaWMVC.Controllers
         {
             try
             {
-				var existingTag = await _context.Tags
-										.FirstOrDefaultAsync(t => t.TagName == tagVM.TagName.Trim());
-				if (existingTag != null)
-				{
-					//=== If the tag already exists, display an error message ===//
-					TempData["Message"] = "Tag name already exists.";
+                var existingTag = await _context.Tags
+                                        .FirstOrDefaultAsync(t => t.TagName == tagVM.TagName.Trim());
 
-					//=== Return the view with the existing data to allow the user to correct it ===//
-					return RedirectToAction(nameof(Index));
-				}
+                if (existingTag != null)
+                {
+                    //=== If the tag already exists, display an error message ===//
+                    _notyf.Warning("Tag name already exists.");
 
 
-				var countTag = await _context.Tags.CountAsync();
-               
+                    //=== Return the view with the existing data to allow the user to correct it ===//
+                    return RedirectToAction(nameof(Index), tagVM);
+                }
+
+                if (tagVM.TagName.Length > 75)
+                {
+                    //=== Nếu độ dài của TagName vượt quá 75 ký tự, hiển thị thông báo cảnh báo ===//
+                    _notyf.Warning("Tag name is too long. Please shorten it.");
+
+                    //=== Trả về view với dữ liệu hiện tại để người dùng chỉnh sửa ===//
+                    return RedirectToAction(nameof(Index), tagVM);
+                }
+
+                if (tagVM.TagDescription.Length > 200)
+                {
+                    //=== Nếu độ dài của TagName vượt quá 75 ký tự, hiển thị thông báo cảnh báo ===//
+                    _notyf.Warning("Tag description is too long. Please shorten it.");
+
+                    //=== Trả về view với dữ liệu hiện tại để người dùng chỉnh sửa ===//
+                    return RedirectToAction(nameof(Index), tagVM);
+                }
+
+                var countTag = await _context.Tags.CountAsync();
+
                 var newTag = new Tag
                 {
                     TagName = tagVM.TagName.Trim(),
@@ -54,7 +75,7 @@ namespace RaWMVC.Controllers
                 await _context.SaveChangesAsync();
 
                 //=== Display successfully saved message ===//
-                TempData["Message"] = "Tag added successfully.";
+                _notyf.Success("Tag added successfully.");
 
                 //=== Return to continue creating ===//
                 return RedirectToAction(nameof(Index));
@@ -62,57 +83,69 @@ namespace RaWMVC.Controllers
             catch
             {
                 //=== Display faily saved message ===//
-                TempData["Message"] = "Failed to add tag.";
+                _notyf.Error("Failed to add tag.");
 
                 //=== If not successful, check the data again ===//
                 return View(nameof(Index));
             }
         }
 
-		// GET: TagController/Edit/5
-		public async Task<IActionResult> Edit(Guid idTag)
-		{
-			var tagVM = await _context.Tags
-				.Where(s => s.TagId.Equals(idTag))
-				.Select(a => new TagViewModel
-				{
-					TagId = a.TagId,
-					TagName = a.TagName,
-					TagDescription = a.TagDescription,
-				})
-				.SingleOrDefaultAsync();
+        // GET: TagController/Edit/5
+        public async Task<IActionResult> Edit(Guid idTag)
+        {
+            var tagVM = await _context.Tags
+                .Where(s => s.TagId.Equals(idTag))
+                .Select(a => new TagViewModel
+                {
+                    TagId = a.TagId,
+                    TagName = a.TagName,
+                    TagDescription = a.TagDescription,
+                })
+                .SingleOrDefaultAsync();
 
-			if (tagVM == null) return BadRequest();
+            if (tagVM == null) return BadRequest();
 
-			return View(nameof(Index), tagVM);
-		}
+            return View(nameof(Index), tagVM);
+        }
 
-		// POST: TagController/Edit/5
-		[HttpPost]
+        // POST: TagController/Edit/5
+        [HttpPost]
         [ValidateAntiForgeryToken]
-		public async Task<IActionResult> Edit(Tag tagVM)
-		{
-			try
-			{
-				var tag = await _context.Tags.FindAsync(tagVM.TagId);
-				if (tag == null) return BadRequest();
+        public async Task<IActionResult> Edit(Tag tagVM)
+        {
+            try
+            {
+                var tag = await _context.Tags.FindAsync(tagVM.TagId);
+                if (tag == null) return BadRequest();
 
-				tag.TagName = tagVM.TagName.Trim();
-				tag.TagDescription = tagVM.TagDescription?.Trim();
+                tag.TagName = tagVM.TagName.Trim();
+                tag.TagDescription = tagVM.TagDescription?.Trim();
 
-				await _context.SaveChangesAsync();
+                var existingTag = await _context.Tags
+                        .FirstOrDefaultAsync(t => t.TagName == tagVM.TagName.Trim());
+                if (existingTag != null)
+                {
+                    //=== If the tag already exists, display an error message ===//
+                    _notyf.Warning("Tag name already exists.");
 
-				TempData["Message"] = "Edited tag successfully.";
 
-				return RedirectToAction(nameof(Index));
-			}
-			catch
-			{
-				TempData["Message"] = "Failed to edit tag";
+                    //=== Return the view with the existing data to allow the user to correct it ===//
+                    return RedirectToAction(nameof(Index), tagVM);
+                }
 
-				return View(nameof(Index), tagVM);
-			}
-		}
+                await _context.SaveChangesAsync();
+
+                _notyf.Success("Edited tag successfully.");
+
+                return RedirectToAction(nameof(Index));
+            }
+            catch
+            {
+                _notyf.Success("Failed to edit tag");
+
+                return View(nameof(Index), tagVM);
+            }
+        }
 
         // POST: ArtistController/Delete/5
         [HttpPost]
@@ -145,6 +178,7 @@ namespace RaWMVC.Controllers
                     _context.Tags.Remove(tag);
                 }
                 await _context.SaveChangesAsync();
+                message = "Tag deleted successfully.";
                 status = true;
             }
             catch

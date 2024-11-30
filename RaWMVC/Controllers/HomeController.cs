@@ -1,15 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RaWMVC.Areas.Identity.Data;
 using RaWMVC.Data;
 using RaWMVC.Data.Entities;
-using RaWMVC.Models;
 using RaWMVC.ViewModels;
-using System.Diagnostics;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace RaWMVC.Controllers
 {
@@ -17,13 +12,15 @@ namespace RaWMVC.Controllers
     {
         private readonly RaWDbContext _context;
         private readonly UserManager<RaWMVCUser> _userManager;
+        private readonly RoleManager<RaWMVCRole> _roleManager;
         private readonly ILogger<HomeController> _logger;
 
-        public HomeController(RaWDbContext context, ILogger<HomeController> logger, UserManager<RaWMVCUser> userManager)
+        public HomeController(RaWDbContext context, ILogger<HomeController> logger, UserManager<RaWMVCUser> userManager, RoleManager<RaWMVCRole> roleManager)
         {
             _context = context;
             _logger = logger;
             _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         public async Task<IActionResult> Index()
@@ -141,7 +138,7 @@ namespace RaWMVC.Controllers
             return Json(stories);
         }
 
-        public async Task<IActionResult> FullSearch(string query, DateOnly? dateUpdated = null, 
+        public async Task<IActionResult> FullSearch(string query, DateOnly? dateUpdated = null,
             int chapterCountIndex = 0)
         {
             ViewData["SearchString"] = query;
@@ -160,23 +157,10 @@ namespace RaWMVC.Controllers
 
             return PartialView(searchResultViewModel);
         }
-
         private async Task<SearchViewModel> GetDataStory(string query, int chapterCountIndex = 0,
-           DateOnly? dateUpdated = null)
+            DateOnly? dateUpdated = null)
         {
             var arrayChapterCount = new[] { 0, 20, 40, 100 };
-            //var user = await _userManager.GetUserAsync(User);
-
-            //var storiesList = _context.Stories
-            //    .Include(s => s.Status)
-            //    .Include(s => s.Medium)
-            //    .Include(s => s.Chapters)
-            //    .Where(s => s.StoryTitle.Contains(query)
-            //           || s.StoryDescription.Contains(query)
-            //           || s.Genre.GenreName.Contains(query)
-            //           || s.Tag.TagName.Contains(query)
-            //           || s.Status.StatusName.Contains(query)) // Chỉ lọc các truyện có chứa query
-            //    .AsQueryable();
 
             var storiesList = _context.Stories
                 .Include(s => s.Status)
@@ -190,10 +174,10 @@ namespace RaWMVC.Controllers
             if (!string.IsNullOrEmpty(query))
             {
                 storiesList = storiesList.Where(m => m.StoryTitle.Contains(query)
-                                           || m.StoryDescription.Contains(query)
-                                           || m.Genre.GenreName.Contains(query)
-                                           || m.Tag.TagName.Contains(query)
-                                           || m.Status.StatusName.Contains(query));
+                                                   || m.StoryDescription.Contains(query)
+                                                   || m.Genre.GenreName.Contains(query)
+                                                   || m.Tag.TagName.Contains(query)
+                                                   || m.Status.StatusName.Contains(query));
 
                 userList = userList.Where(u => u.UserName.Contains(query) || u.Email.Contains(query));
             }
@@ -210,45 +194,53 @@ namespace RaWMVC.Controllers
                 storiesList = storiesList.Where(s => DateOnly.FromDateTime(s.PublishDate) == dateUpdated);
             }
 
-            var stories = await storiesList.Select(s => new StoryViewModel
-            {
-                StoryId = s.StoryId,
-                StoryTitle = s.StoryTitle,
-                StoryDescription = s.StoryDescription,
-                PublishDate = s.PublishDate,
-                GenreName = s.Genre.GenreName,
-                TagName = s.Tag.TagName,
-                StatusName = s.Status.StatusName,
-                Username = s.Username,
-                UserId = s.UserId,
-                Medium = new Medium
+            // Lấy danh sách các câu chuyện
+            var stories = await storiesList
+                .Include(s => s.Chapters)
+                .Select(s => new StoryViewModel
                 {
-                    FileName = s.Medium.FileName,
-                    Extension = s.Medium.Extension
-                }
-            }).ToListAsync();
+                    StoryId = s.StoryId,
+                    StoryTitle = s.StoryTitle,
+                    StoryDescription = s.StoryDescription,
+                    PublishDate = s.PublishDate,
+                    GenreName = s.Genre.GenreName,
+                    TagName = s.Tag.TagName,
+                    StatusName = s.Status.StatusName,
+                    Username = s.Username,
+                    UserId = s.UserId,
+                    Medium = new Medium
+                    {
+                        FileName = s.Medium.FileName,
+                        Extension = s.Medium.Extension
+                    }
+                }).ToListAsync();
 
-            var users = await userList.Select(u => new AccountViewModel
+            // Tạo danh sách người dùng có vai trò "Author"
+            var usersWithRoles = new List<AccountViewModel>();
+
+            foreach (var user in await _userManager.Users.ToListAsync())
             {
-                Id = u.Id,
-                Username = u.UserName,
-                Email = u.Email,
-                ProfilePicture = u.ProfilePicture,
-            }).ToListAsync();
+                var userRoles = await _userManager.GetRolesAsync(user);
+
+                if (userRoles.Contains("Author"))
+                {
+                    usersWithRoles.Add(new AccountViewModel
+                    {
+                        Id = user.Id,
+                        Username = user.UserName,
+                        Email = user.Email,
+                        ProfilePicture = user.ProfilePicture,
+                    });
+                }
+            }
 
             var searchResultViewModel = new SearchViewModel
             {
                 Stories = stories,
-                Users = users
+                Users = usersWithRoles
             };
 
             return searchResultViewModel;
         }
-
-        public IActionResult Profile()
-        {
-            return View();
-        }
-
     }
 }

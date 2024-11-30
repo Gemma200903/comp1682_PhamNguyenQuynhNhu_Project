@@ -22,7 +22,6 @@ namespace RaWMVC.ViewModels
 
         public List<FollowViewModel> FollowingUsers { get; set; }
 
-        public List<ReadingList> ReadingLists { get; set; }
         public List<FollowViewModel> Follows { get; set; }
         public List<PostViewModel> Posts { get; set; }
     }

@@ -1,0 +1,46 @@
+﻿@model List<RaWMVC.ViewModels.ScheduledDeleteViewModel>
+
+@{
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<h3 class="text-center fw-bold">Stories Scheduled for Deletion</h3>
+<hr />
+
+<table class="table table-bordered">
+    <thead class="bg-dark">
+        <tr class="text-center text-white">
+            <th>Story Title</th>
+            <th>Author</th>
+            <th>Approved Time</th>
+            <th>Scheduled Delete Time</th>
+            <th>Time Remaining</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody class="text-center">
+        @foreach (var story in Model)
+        {
+            <tr>
+                <td>@story.StoryTitle</td>
+                <td>@story.AuthorName</td>
+                <td>@story.ApprovedTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                <td>@story.ScheduledDeleteTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                <td>
+                    @(story.TimeRemaining.TotalSeconds > 0
+                        ? $"{story.TimeRemaining.Days}d {story.TimeRemaining.Hours}h {story.TimeRemaining.Minutes}m"
+                        : "Expired")
+                </td>
+                <td>
+                    @if (story.TimeRemaining.TotalSeconds > 0)
+                    {
+                        <form asp-action="CancelDelete" asp-controller="StoryDelete" method="post">
+                            <input type="hidden" name="storyId" value="@story.StoryId" />
+                            <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.Threading.Tasks;
+using AspNetCoreHero.ToastNotification.Abstractions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Logging;
 using RaWMVC.Areas.Identity.Data;
+using System.ComponentModel.DataAnnotations;
 
 namespace RaWMVC.Areas.Identity.Pages.Account.Manage
 {
@@ -18,15 +16,17 @@ namespace RaWMVC.Areas.Identity.Pages.Account.Manage
         private readonly UserManager<RaWMVCUser> _userManager;
         private readonly SignInManager<RaWMVCUser> _signInManager;
         private readonly ILogger<ChangePasswordModel> _logger;
+        private readonly INotyfService _notyf;
 
         public ChangePasswordModel(
             UserManager<RaWMVCUser> userManager,
             SignInManager<RaWMVCUser> signInManager,
-            ILogger<ChangePasswordModel> logger)
+            ILogger<ChangePasswordModel> logger, INotyfService notyf)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
+            _notyf = notyf;
         }
 
         /// <summary>
@@ -95,43 +95,6 @@ namespace RaWMVC.Areas.Identity.Pages.Account.Manage
             return Page();
         }
 
-        //public async Task<IActionResult> OnPostAsync()
-        //{
-        //    if (!ModelState.IsValid)
-        //    {
-        //        foreach (var modelState in ModelState)
-        //        {
-        //            foreach (var error in modelState.Value.Errors)
-        //            {
-        //                _logger.LogError($"Key: {modelState.Key}, Error: {error.ErrorMessage}");
-        //            }
-        //        }
-        //        return Page();
-        //    }
-
-        //    var user = await _userManager.GetUserAsync(User);
-        //    if (user == null)
-        //    {
-        //        return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-        //    }
-
-        //    var changePasswordResult = await _userManager.ChangePasswordAsync(user, Input.OldPassword, Input.NewPassword);
-        //    if (!changePasswordResult.Succeeded)
-        //    {
-        //        foreach (var error in changePasswordResult.Errors)
-        //        {
-        //            ModelState.AddModelError(string.Empty, error.Description);
-        //        }
-        //        return Page();
-        //    }
-
-        //    await _signInManager.RefreshSignInAsync(user);
-        //    _logger.LogInformation("User changed their password successfully.");
-        //    StatusMessage = "Your password has been changed.";
-
-        //    return RedirectToPage();
-        //}
-
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid)
@@ -152,7 +115,13 @@ namespace RaWMVC.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
-            // Ghi lại thông tin mật khẩu cũ và mới (cẩn thận với việc ghi mật khẩu vào log)
+            var isCurrentPassword = await _userManager.CheckPasswordAsync(user, Input.NewPassword);
+            if (isCurrentPassword)
+            {
+                _notyf.Error("New password cannot be the same as the current password.");
+                return Page();
+            }
+
             _logger.LogInformation("Attempting to change password for user: {UserId}", user.Id);
 
             var changePasswordResult = await _userManager.ChangePasswordAsync(user, Input.OldPassword, Input.NewPassword);
@@ -168,7 +137,7 @@ namespace RaWMVC.Areas.Identity.Pages.Account.Manage
 
             await _signInManager.RefreshSignInAsync(user);
             _logger.LogInformation("User changed their password successfully.");
-            StatusMessage = "Your password has been changed.";
+            _notyf.Success("Your password has been changed.");
 
             return RedirectToPage();
         }

@@ -59,12 +59,11 @@
                     idTag
                 },
                 success: function (data) {
-                    if (data.status) {
-                        ReloadTagList();
-                    }
+                    toastr.success(data.message);
+                    ReloadTagList();
                 },
                 error: function (err) {
-
+                    toastr.error(data.message || "Failed to delete tag.");
                 },
                 complete: function (e) {
 
@@ -74,7 +73,7 @@
         function ReloadTagList(currentPage = 1) {
             $.ajax({
                 type: 'GET',
-                url: "/Tag/ReloadTagList",
+                url: "/Tag/ReloadTagList/",
                 data: { currentPage },
                 success: function (data) {
                     let divTagList = document.getElementById("tag-list");

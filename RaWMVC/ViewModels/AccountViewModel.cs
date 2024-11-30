@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RaWMVC.ViewModels
 {
-	[Bind("Id, Email, Username, Password, ConfirmPassword, Role, ProfilePicture")]
+	[Bind("Id, Email, Username, Password, ConfirmPassword, RoleId, ProfilePicture")]
 	public class AccountViewModel
 	{
         public string Id { get; set; }
@@ -22,7 +22,8 @@ namespace RaWMVC.ViewModels
 		public string ConfirmPassword { get; set; }
 		public string? ProfilePicture{ get; set; }
 
-		public string Role { get; set; }
+		public string RoleId{ get; set; }
+		public string RoleName { get; set; }
 		public IList<string> Roles { get; set; }
 	}
 }

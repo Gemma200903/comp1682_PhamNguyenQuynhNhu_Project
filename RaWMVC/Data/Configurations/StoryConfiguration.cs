@@ -21,10 +21,6 @@ namespace RaW.MVC.Data.Configurations
 
             builder.HasKey(s => new { s.StoryId });
 
-            builder.HasMany(s => s.ReadingListStories)
-            .WithOne(s => s.Story)
-            .HasForeignKey(s => s.StoryId);
-
             builder.HasMany(s => s.Libraries)
                .WithOne(l => l.Story)
                .HasForeignKey(l => l.StoryId)

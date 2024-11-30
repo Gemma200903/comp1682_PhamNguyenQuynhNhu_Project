@@ -54,12 +54,11 @@
                     id
                 },
                 success: function (data) {
-                    if (data.status) {
-                        ReloadRoleList();
-                    }
+                    toastr.success(data.message);
+                    ReloadRoleList();
                 },
                 error: function (err) {
-
+                    toastr.error(data.message || "Failed to delete role.");
                 },
                 complete: function (e) {
 

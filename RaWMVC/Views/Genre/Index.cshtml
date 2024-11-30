@@ -61,12 +61,11 @@
                     idGenre
                 },
                 success: function (data) {
-                    if (data.status) {
-                        ReloadGenreList();
-                    }
+                    toastr.success(data.message);
+                    ReloadGenreList();
                 },
                 error: function (err) {
-
+                    toastr.error(data.message || "Failed to delete genre.");
                 },
                 complete: function (e) {
 

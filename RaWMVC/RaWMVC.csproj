@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AspNetCoreHero.ToastNotification" Version="1.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.QuickGrid.EntityFrameworkAdapter" Version="8.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.7" />
@@ -35,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Data\Migrations\" />
     <Folder Include="wwwroot\app-assets\css-rtl\plugins\menu\mmenu\extensions\borderstyle\" />
     <Folder Include="wwwroot\app-assets\css-rtl\plugins\menu\mmenu\extensions\justifiedlistview\" />
     <Folder Include="wwwroot\app-assets\css-rtl\plugins\menu\mmenu\extensions\positioning\" />

@@ -1,10 +1,9 @@
-﻿using Azure;
+﻿using AspNetCoreHero.ToastNotification.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaWMVC.Areas.Identity.Data;
-using RaWMVC.Data.Entities;
 using RaWMVC.ViewComponents;
 using RaWMVC.ViewModels;
 
@@ -14,10 +13,12 @@ namespace RaWMVC.Controllers
     public class RoleController : Controller
     {
         private readonly RoleManager<RaWMVCRole> _roleManager;
+        private readonly INotyfService _notyf;
 
-        public RoleController(RoleManager<RaWMVCRole> roleManager)
+        public RoleController(RoleManager<RaWMVCRole> roleManager, INotyfService notyf)
         {
             _roleManager = roleManager;
+            _notyf = notyf;
         }
         public IActionResult Index()
         {
@@ -30,6 +31,27 @@ namespace RaWMVC.Controllers
         {
             if (ModelState.IsValid)
             {
+                var existingRole = await _roleManager.FindByNameAsync(roleVM.Name);
+                if (existingRole != null)
+                {
+                    _notyf.Warning("Role with this name already exists.");
+                    return View(nameof(Index), roleVM);
+                }
+
+                if (roleVM.Name.Length > 75)
+                {
+                    _notyf.Warning("Role name cannot be longer than 75 characters.");
+
+                    return View(nameof(Index), roleVM);
+                }
+
+                if (!string.IsNullOrEmpty(roleVM.Description) && roleVM.Description.Length > 200)
+                {
+                    _notyf.Warning("Role description cannot be longer than 200 characters.");
+
+                    return View(nameof(Index), roleVM);
+                }
+
                 var newRole = new RaWMVCRole
                 {
                     Name = roleVM.Name,
@@ -40,6 +62,8 @@ namespace RaWMVC.Controllers
                 var result = await _roleManager.CreateAsync(newRole);
                 if (result.Succeeded)
                 {
+                    _notyf.Success("Role added successfully.");
+
                     return RedirectToAction("Index");
                 }
 
@@ -58,7 +82,7 @@ namespace RaWMVC.Controllers
         {
             //var role = await _roleManager.FindByIdAsync(id);
             var role = await _roleManager.Roles.Where(r => r.Id == id).SingleOrDefaultAsync();
-			if (role == null) return BadRequest();
+            if (role == null) return BadRequest();
 
             var model = new RoleViewModel
             {
@@ -86,13 +110,14 @@ namespace RaWMVC.Controllers
 
                 await _roleManager.UpdateAsync(role);
 
-                TempData["Message"] = "Edited role successfully.";
+                _notyf.Success("Edited role successfully.");
 
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 TempData["Message"] = "Failed to edit role";
+                _notyf.Error("Failed to edit role");
 
                 return View(nameof(Index), roleVM);
             }
@@ -109,6 +134,7 @@ namespace RaWMVC.Controllers
                 //=== Remove Role ====//
                 var result = await _roleManager.DeleteAsync(role);
                 status = true;
+                message = "Delete role successfully!!!";
             }
             catch
             {

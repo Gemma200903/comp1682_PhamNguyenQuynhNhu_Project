@@ -1,0 +1,15 @@
+﻿@page
+@model RaWMVC.Areas.Identity.Pages.Account.EnterOtpModel
+@{
+    ViewData["Title"] = "Enter OTP";
+}
+
+<form method="post">
+    <div class="form-group">
+        <label for="Otp">OTP</label>
+        <input type="text" class="form-control" asp-for="Input.Otp" />
+        <span asp-validation-for="Input.Otp" class="text-danger"></span>
+    </div>
+    <input type="hidden" asp-for="Input.PhoneNumber" />
+    <button type="submit" class="btn btn-primary">Verify OTP</button>
+</form>

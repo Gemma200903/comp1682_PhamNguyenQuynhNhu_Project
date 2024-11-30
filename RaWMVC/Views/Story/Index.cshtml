@@ -55,20 +55,30 @@
                 processData: false,
                 contentType: false,
                 success: function (data) {
-                    if (data.success) {
-                        // Tắt modal
-                        $('#modalStory').modal('hide');
-                        // Tải lại danh sách story (bạn có thể cập nhật danh sách mà không cần tải lại trang)
-                        window.location.reload();
-                    } else {
-                        // Hiển thị thông báo lỗi
-                        document.getElementById("errorMessage").innerText = data.message;
-                    }
+                    toastr.success(data.message);
+                    closeModal();
+                    ReloadStoryList();
                 },
                 error: function (err) {
                     console.log(err);
                 }
             });
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];  // Get the selected file
+            const reader = new FileReader();     // Create a new FileReader instance
+
+            reader.onload = function (e) {
+                // Set the image preview source to the result of the FileReader
+                const imagePreview = document.getElementById("imagePreview");
+                imagePreview.style.display = "block";  // Show the image
+                imagePreview.src = e.target.result;  // Set the image source
+            };
+
+            if (file) {
+                reader.readAsDataURL(file);  // Read the file as a Data URL
+            }
         }
         //=== Delete Story ===//
         function deleteStory(idStory) {
@@ -79,7 +89,7 @@
                     idStory
                 },
                 success: function (data) {
-                    alert("Delete successfully!!!");
+                    toastr.success(data.message);
                     ReloadStoryList();
                 },
                 error: function (err) {
@@ -93,7 +103,7 @@
         function ReloadStoryList() {
             $.ajax({
                 type: 'GET',
-                url: "/Story/ReloadStoryList",
+                url: "/Story/ReloadStoryList/",
                 success: function (data) {
                     let divStoryList = document.getElementById("story-list");
 
@@ -128,6 +138,21 @@
                 complete: function () { }
             });
         }
+        function previewImageEdit(event) {
+            const file = event.target.files[0];  // Get the selected file
+            const reader = new FileReader();     // Create a new FileReader instance
+
+            reader.onload = function (e) {
+                // Set the image preview source to the result of the FileReader
+                const imageEditPreview = document.getElementById("imageEditPreview");
+                imageEditPreview.style.display = "block";  // Show the image
+                imageEditPreview.src = e.target.result;  // Set the image source
+            };
+
+            if (file) {
+                reader.readAsDataURL(file);  // Read the file as a Data URL
+            }
+        }
         function editStory(idStory) {
             let formData = new FormData(document.getElementById("editStoryForm"));
 
@@ -138,33 +163,14 @@
                 processData: false,
                 contentType: false,
                 success: function (data) {
-                    if (data.success) {
-                        closeModal();
-                        updateStoryList();
-                    } else {
-                        showErrorMessage(data.message);
-                    }
+                    toastr.success(data.message);
+                    closeModal();
+                    ReloadStoryList();
                 },
                 error: function (err) {
                     console.error(err);
                 }
             });
         }
-        function updateStoryList() {
-            $.ajax({
-                type: "GET",
-                url: "/Story/Index",
-                success: function (data) {
-                    $("#story-list").html(data);
-                },
-                error: function (err) {
-                    console.error(err);
-                }
-            });
-        }
-        function showErrorMessage(message) {
-            document.getElementById("errorMessage").innerHTML = message;
-        }
-
     </script>
 }

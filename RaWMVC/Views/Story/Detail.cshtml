@@ -10,13 +10,33 @@
                 @Model.StoryTitle
             </h3>
             <ul class="tags_story d-flex mt-4">
+                @if(Model.StatusName == "Mature"){
+                    <li>
+                        <a class="text-decoration-none text-white ms-2 bg-danger border rounded-pill"
+                           href="#">Mature</a>
+                    </li>
+                }else if(Model.StatusName == "Completed")
+                {
+                    <li>
+                        <a class="text-decoration-none text-white ms-2 bg-success border rounded-pill"
+                           href="#">Completed</a>
+                    </li>
+                }else if(Model.StatusName == "Ongoing")
+                {
+                    <li>
+                        <a class="text-decoration-none text-dark ms-2 bg-warning border rounded-pill"
+                           href="#">Ongoing</a>
+                    </li>
+                } else
+                {
+                    <li>
+                        <a class="text-decoration-none text-white ms-2 bg-secondary border rounded-pill"
+                           href="#">Dropped</a>
+                    </li>
+                }
                 <li>
-                    <a class="text-decoration-none text-white ms-2 bg-success border rounded-pill"
-                        href="#">@Model.StatusName</a>
-                </li>
-                <li>
-                    <a class="text-decoration-none text-white ms-2 bg-danger border rounded-pill"
-                        href="#">@Model.TagName</a>
+                    <a class="text-decoration-none text-white ms-2 bg-secondary border rounded-pill"
+                       href="#">@Model.TagName</a>
                 </li>
                 <li>
                     <a class="text-decoration-none text-white ms-2 bg-secondary border rounded-pill"
@@ -31,7 +51,7 @@
                 <div class="reader me-2">
                     <i class="fa-solid fa-book-open-reader"></i> @Model.TotalReadCount
                 </div>
-                <div class="rate me-2"><i class="fa-solid fa-star"></i> 100K</div>
+                <div class="rate me-2"><i class="fa-solid fa-star"></i>  @Model.TotalLikeCount</div>
                 <div class="chapter"><i class="fa-solid fa-list-ol"></i> @Model.Chapters.Count()</div>
             </div>
             <p class="description mt-4">
@@ -50,20 +70,6 @@
                             </a>
                             <input type="checkbox" id="myLibraryCheckbox" hidden checked />
                         </li>
-                        @if (Model.ReadingLists != null)
-                        {
-                            foreach (var readingList in Model.ReadingLists)
-                            {
-                                if (readingList.Name != "Current List")
-                                {
-                                    <li>
-                                        <a class="dropdown-item" onclick="addToLibrary('@Model.StoryId', true, '@readingList.ReadingListsId')">
-                                            @readingList.Name
-                                        </a>
-                                    </li>
-                                }
-                            }
-                        }
                     </ul>
                 </div>
             </div>
@@ -78,7 +84,7 @@
                     @foreach (var chapter in Model.Chapters)
                     {
                         <li class="w-100 pe-4">
-                            <a href="@Url.Action("Detail", "Chapter", new { idChapter = chapter.ChapterId })" class="d-flex text-decoration-none text-dark w-100 justify-content-between">
+                            <a href="@Url.Action("Detail", "Chapter", new { idChapter = chapter.ChapterId})" class="d-flex text-decoration-none text-dark w-100 justify-content-between">
                                 <p>@chapter.ChapterTitle</p>
                                 <span class="float-end fst-italic">@chapter.PublishDate</span>
                             </a>
@@ -115,17 +121,6 @@
                                     <strong>
                                         @story.StoryTitle
                                     </strong>
-                                    <div class="profile_infor d-flex mt-4">
-                                        <div class="reader me-2">
-                                            <i class="fa-solid fa-book-open-reader"></i> 123K
-                                        </div>
-                                        <div class="rate me-2">
-                                            <i class="fa-solid fa-star"></i> 100K
-                                        </div>
-                                        <div class="chapter">
-                                            <i class="fa-solid fa-list-ol"></i> 23
-                                        </div>
-                                    </div>
                                     <p class="description mt-4">
                                         @story.StoryDescription
                                     </p>
@@ -141,32 +136,29 @@
 
 @section Scripts {
     <script>
-        function addToLibrary(storyId, addToLibrary = true, readingListId = null) {
-            var currentListId = '@Model.CurrentListId';
+        function addToLibrary(storyId, readingListId = null) {
             let addToMyLibrary = document.getElementById("myLibraryCheckbox").checked;
 
             $.ajax({
-                url: "/Library/AddStory",
+                url: "/Library/AddAndRemoveLibrary",
                 type: 'POST',
                 data: {
                     storyId: storyId,
-                    addToLibrary: addToMyLibrary,
-                    readingListId: readingListId
                 },
-                success: function () {
-                    alert("Story added to your library and selected reading list!");
-                    window.location.reload();
+                success: function (response) {
+                    toastr.success(response.message);
                 },
                 error: function (xhr) {
                     console.log(xhr.responseText);
                     if (xhr.status === 400) {
                         alert("This story is already in your library.");
                     } else {
-                        alert("Failed to add the story.");
+                        alert("Failed to add/remove the story.");
                     }
                 }
             });
         }
+
        //=== Report ===//
         function openModalReport(storyId) {
             $.ajax({

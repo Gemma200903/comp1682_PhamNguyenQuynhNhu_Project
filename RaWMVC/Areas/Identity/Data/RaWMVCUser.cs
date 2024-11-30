@@ -20,15 +20,10 @@ public class RaWMVCUser : IdentityUser
     [Display(Name = "Introduction")]
     public string? Introduction { get; set; }
     public string? ProfilePicture { get; set; }
-    public DateOnly? DateOfBirth { get; set; }
     public DateTime JoinedDate { get; set; }
     public string? AvatarUrl { get; set; }
     public Guid? CurrentListId { get; set; }
 
     [NotMapped]
     public IFormFile? ProfilePictureFile { get; set; }
-
-    // Navigation properties for followers and followees
-    public virtual ICollection<Follow> Followers { get; set; } = new List<Follow>();
-    public virtual ICollection<Follow> Followees { get; set; } = new List<Follow>();
 }

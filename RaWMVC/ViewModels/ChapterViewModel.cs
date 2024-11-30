@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RaWMVC.ViewModels
 {
-    [Bind("ChapterId, ChapterTitle, Position, ChapterContent, PublishDate, IsPublished, IsDraft, StoryId, UserId, Username")]
+    [Bind("ChapterId, ChapterTitle, Position, ChapterContent, PublishDate, IsPublished, IsDraft, StoryId, UserId, Username, ReadCount, LikeCount")]
     public class ChapterViewModel
     {
         public Guid ChapterId { get; set; }
@@ -19,6 +19,8 @@ namespace RaWMVC.ViewModels
         public Boolean IsPublished { get; set; }
         public Boolean IsDraft { get; set; }
         public Guid StoryId { get; set; }
+        public int ReadCount{ get; set; }
+        public int LikeCount { get; set; }
         public List<Comment> Comments { get; set; } = new List<Comment>();
     }
 }

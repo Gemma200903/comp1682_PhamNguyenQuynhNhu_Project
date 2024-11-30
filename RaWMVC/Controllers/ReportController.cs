@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AspNetCoreHero.ToastNotification.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +15,13 @@ namespace RaWMVC.Controllers
     {
         private readonly RaWDbContext _context;
         private readonly UserManager<RaWMVCUser> _userManager;
+        private readonly INotyfService _notyf;
 
-        public ReportController(RaWDbContext context, UserManager<RaWMVCUser> userManager)
+        public ReportController(RaWDbContext context, UserManager<RaWMVCUser> userManager, INotyfService notyf)
         {
             _context = context;
             _userManager = userManager;
+            _notyf = notyf;
         }
 
         public async Task<IActionResult> ReportStory(Guid storyId)
@@ -43,6 +46,12 @@ namespace RaWMVC.Controllers
                .Select(s => new { s.UserId, s.Username })
                .FirstOrDefaultAsync();
 
+            if(string.IsNullOrEmpty(description))
+            {
+                _notyf.Error("Description cannot be null. Please enter your description for reason.");
+                return RedirectToAction("Detail", "Story", new { idStory = storyId });
+            }
+
             var report = new Report
             {
                 StoryId = storyId,
@@ -51,7 +60,7 @@ namespace RaWMVC.Controllers
                 UserId = userReport.Id,
                 Username = userReport.UserName,
                 Reason = reason,
-                Description = description,
+                Description = description.Trim(),
                 ReportDate = DateTime.Now,
                 IsReviewed = false,
                 IsApproved = false
@@ -60,7 +69,7 @@ namespace RaWMVC.Controllers
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
 
-            TempData["MessageSuccess"] = "Your report has been submitted successfully.";
+            _notyf.Success("Your report has been submitted successfully.");
             return RedirectToAction("Detail", "Story", new { idStory = storyId });
         }
 
@@ -70,6 +79,7 @@ namespace RaWMVC.Controllers
             var reports = await _context.Reports
                 .Include(r => r.Story)
                 .Where(r => !r.IsReviewed)
+                .OrderBy(r => r.ReportDate)
                 .ToListAsync();
 
             return View(reports);
@@ -77,6 +87,7 @@ namespace RaWMVC.Controllers
 
         [Authorize(Roles = "Admintrator")]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveReport(Guid reportId)
         {
             var report = await _context.Reports
@@ -90,18 +101,18 @@ namespace RaWMVC.Controllers
                 report.IsApproved = true;
                 await _context.SaveChangesAsync();
 
-                //=== Save information to delete story after 24 hours ===//
+                //=== Save information to delete story after 3 days ===//
                 var scheduledDelete = new ScheduledDelete
                 {
                     StoryId = report.StoryId,
-                    ScheduledTime = DateTime.Now.AddHours(24)
+                    ScheduledTime = DateTime.Now.AddHours(72)
                 };
 
                 _context.ScheduledDeletes.Add(scheduledDelete);
                 await _context.SaveChangesAsync();
 
                 //=== Create notification for reporter ===//
-                var notificationForReporter = new Notification
+                var notificationForReporter = new Data.Entities.Notification
                 {
                     UserId = report.UserId,
                     Username = report.Username,
@@ -112,11 +123,12 @@ namespace RaWMVC.Controllers
                 };
 
                 //=== Create a notification for the story author ===//
-                var notificationForAuthor = new Notification
+                var notificationForAuthor = new Data.Entities.Notification
                 {
                     UserId = report.AuthorId,
                     Username = report.Story?.Username,
-                    Message = $"Your story '{report.Story.StoryTitle}' has been reported and will be removed in 3 days.",
+                    Message = $"Your story '{report.Story.StoryTitle}' has been reported and will be removed in 3 days. " +
+                            $"If you believe this is a mistake, please contact our support team immediately for further assistance.",
                     Link = $"/Story/Detail?idStory={report.StoryId}",
                     CreatedDate = DateTime.Now,
                     IsRead = false
@@ -133,6 +145,7 @@ namespace RaWMVC.Controllers
 
         [Authorize(Roles = "Admintrator")]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> RejectReport(Guid reportId)
         {
             var report = await _context.Reports
@@ -146,7 +159,7 @@ namespace RaWMVC.Controllers
                 report.IsApproved = false;
                 await _context.SaveChangesAsync();
 
-                var notification = new Notification
+                var notification = new Data.Entities.Notification
                 {
                     UserId = report.UserId,
                     Username = report.Username,

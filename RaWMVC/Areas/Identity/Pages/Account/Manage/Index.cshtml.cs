@@ -6,6 +6,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using AspNetCoreHero.ToastNotification.Abstractions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -20,16 +21,17 @@ namespace RaWMVC.Areas.Identity.Pages.Account.Manage
         private readonly UserManager<RaWMVCUser> _userManager;
         private readonly SignInManager<RaWMVCUser> _signInManager;
         private readonly IWebHostEnvironment _environment;
-
+        private readonly INotyfService _notyf;
 
         public IndexModel(
             UserManager<RaWMVCUser> userManager,
             SignInManager<RaWMVCUser> signInManager,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment, INotyfService notyf)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _environment = environment;
+            _notyf = notyf;
         }
 
         /// <summary>
@@ -87,7 +89,6 @@ namespace RaWMVC.Areas.Identity.Pages.Account.Manage
             var lastName = user.LastName;
             var introduction = user.Introduction;
             var profilePicture = user.ProfilePicture;
-            var dateOfBirth = user.DateOfBirth;
             
 
             Username = userName;
@@ -99,7 +100,6 @@ namespace RaWMVC.Areas.Identity.Pages.Account.Manage
                 FirstName = firstName,
                 LastName = lastName,
                 Introduction = introduction,
-                DateOfBirth = user.DateOfBirth,
                 ProfilePicture = profilePicture
             };
         }
@@ -145,11 +145,6 @@ namespace RaWMVC.Areas.Identity.Pages.Account.Manage
                 user.Introduction = Input.Introduction;
             }
 
-            if (Input.DateOfBirth.HasValue)
-            {
-                user.DateOfBirth = Input.DateOfBirth.Value;
-            }
-
             if (!string.IsNullOrEmpty(Input.Phonenumber) && Input.Phonenumber != user.PhoneNumber)
             {
                 user.PhoneNumber = Input.Phonenumber;
@@ -182,7 +177,7 @@ namespace RaWMVC.Areas.Identity.Pages.Account.Manage
             }
 
             await _signInManager.RefreshSignInAsync(user);
-            StatusMessage = "Your profile has been updated";
+            _notyf.Success("Your profile has been updated");
             return RedirectToPage();
         }
 

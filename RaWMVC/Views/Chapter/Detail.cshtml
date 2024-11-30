@@ -14,33 +14,29 @@
                         data-bs-toggle="dropdown"
                         data-bs-auto-close="outside"
                         aria-expanded="false">
-                    <i class="fa-solid fa-list-ol"></i> <span>14</span>
+                    <i class="fa-solid fa-list-ol"></i> <span>@Model.Chapters.Count()</span>
                 </button>
                 <ul class="dropdown-menu">
-                    <li class="dropdown_chapter">
-                        <a href="#"
-                           class="dropdown-item d-flex text-decoration-none text-dark w-100 justify-content-between">
-                            <p>
-                                <strong>Chapter 12: </strong>Lorem ipsum dolor ipsum dolor
-                            </p>
-                        </a>
-                    </li>
-                    <li class="dropdown_chapter">
-                        <a href="#"
-                           class="dropdown-item d-flex text-decoration-none text-dark w-100 justify-content-between">
-                            <p>
-                                <strong>Chapter 12: </strong>Lorem ipsum dolor ipsum dolor
-                            </p>
-                        </a>
-                    </li>
-                    <li class="dropdown_chapter">
-                        <a href="#"
-                           class="dropdown-item d-flex text-decoration-none text-dark w-100 justify-content-between">
-                            <p>
-                                <strong>Chapter 12: </strong>Lorem ipsum dolor ipsum dolor
-                            </p>
-                        </a>
-                    </li>
+                    @if (Model.Chapters != null && Model.Chapters.Any())
+                    {
+                        @foreach (var chapter in Model.Chapters)
+                        {
+                            <li class="dropdown_chapter">
+                                <a href="@Url.Action("Detail", "Chapter", new { idChapter = chapter.ChapterId})"
+                                   class="dropdown-item d-flex text-decoration-none text-dark w-100 justify-content-between">
+                                    <p>
+                                        @chapter.ChapterTitle
+                                    </p>
+                                </a>
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="dropdown_chapter">
+                            <span class="dropdown-item text-muted">No chapters available.</span>
+                        </li>
+                    }
                 </ul>
             </div>
         </div>
@@ -48,19 +44,37 @@
             @Model.Chapter.ChapterTitle
         </h5>
         <div class="placement">
-            <div class="heart @(Model.IsLiked ? "is-active" : "")" id="likeButton" onclick="toggleLike('@Model.ChapterId')"></div>
+            <i class="fa-regular fa-heart heart @(Model.IsLiked ? "is-active" : "")"
+               id="likeButton"
+               onclick="toggleLike('@Model.ChapterId')">
+            </i>
             <span id="likeCount">@Model.LikeCount</span>
         </div>
         <div class="author d-flex justify-content-between mb-2 me-3">
             <img class="img_author me-2"
-                 src="~/assets/img/mascot_sheep.png"
+                 src="@Model.ProfilePicture"
                  alt="" />
             <p class="fst-italic">@Model.Username</p>
         </div>
     </div>
     <div class="reading_story_container d-flex mt-5">
         <div class="story_content shadow p-3 mb-5 bg-body-tertiary rounded w-50">
-            <p>@Model.Chapter.ChapterContent</p>
+            <p>@Html.Raw(Model.Chapter.ChapterContent)</p>
+
+            <div class="d-flex text-center justify-content-center align-item-center">
+                @if (Model.NextChapter != null)
+                {
+                    <a href="@Url.Action("Detail", "Chapter", new { idChapter = Model.NextChapter.ChapterId })" class="btn btn-outline-secondary">
+                        Countinue <i class="fa-solid fa-forward"></i>
+                    </a>
+                }
+                else
+                {
+                    <button disabled class="btn btn-outline-secondary">
+                        Countinue <i class="fa-solid fa-forward"></i>
+                    </button>
+                }
+            </div>
         </div>
         <div class="right_container w-50">
             <div class="rcm_story">
@@ -77,17 +91,6 @@
                                     <strong>
                                         @story.StoryTitle
                                     </strong>
-                                    <div class="profile_infor d-flex mt-4">
-                                        <div class="reader me-2">
-                                            <i class="fa-solid fa-book-open-reader"></i> 123K
-                                        </div>
-                                        <div class="rate me-2">
-                                            <i class="fa-solid fa-star"></i> 100K
-                                        </div>
-                                        <div class="chapter">
-                                            <i class="fa-solid fa-list-ol"></i> 23
-                                        </div>
-                                    </div>
                                     <p class="description mt-4">
                                         @story.StoryDescription
                                     </p>
@@ -119,8 +122,11 @@
                     chapterId: inputChapterId
                 },
                 success: function (data) {
-                    alert("Delete successfully!!!");
-                    window.location.reload();
+                    toastr.success(data.message);
+
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 500);
                 },
                 error: function (err) {
 
@@ -139,7 +145,7 @@
 
             hasClicked = true;
 
-            const heart = document.querySelector('.heart');
+            const heart = document.querySelector('.heart i');
             heart.classList.add('is-active'); // Đổi màu biểu tượng trái tim
         }
 
@@ -154,27 +160,30 @@
         }
 
         function toggleLike(chapterId) {
-            const userId = '@Model.UserId';
+            const userId = '@Model.UserId'; // Lấy User ID từ server
+            const heart = document.getElementById('likeButton');
 
-            console.log('UserId:', userId)
             $.ajax({
                 url: '/Like/ToggleLike',
                 type: 'POST',
-                data: { 
+                data: {
                     chapterId: chapterId,
                     userId: userId
                 },
                 success: function (response) {
                     if (response.success) {
                         const countSpan = document.getElementById('likeCount');
-                        countSpan.textContent = response.likeCount;
+                        countSpan.textContent = response.likeCount; // Cập nhật số lượt like
 
-                        const heart = document.querySelector('.heart');
-
+                        // Thay đổi trạng thái biểu tượng trái tim
                         if (response.isLiked) {
-                            heart.classList.add('is-active');
+                            heart.classList.remove('fa-regular'); // Xóa icon rỗng
+                            heart.classList.add('fa-solid'); // Thêm icon đầy
+                            heart.classList.add('is-active'); // Hiển thị màu đỏ
                         } else {
-                            heart.classList.remove('is-active');
+                            heart.classList.remove('fa-solid'); // Xóa icon đầy
+                            heart.classList.add('fa-regular'); // Thêm icon rỗng
+                            heart.classList.remove('is-active'); // Trở về mặc định
                         }
                     } else {
                         alert(response.message);
@@ -186,16 +195,20 @@
             });
         }
 
-
+        // Khởi tạo trạng thái khi trang được load
         document.addEventListener("DOMContentLoaded", function () {
             const isLiked = @Model.IsLiked.ToString().ToLower();
-            hasClicked = (isLiked === "true");
+            const heart = document.getElementById('likeButton');
 
-            if (hasClicked) {
-                const heart = document.querySelector('.heart');
-                heart.classList.add('is-active');
+            if (isLiked === "true") {
+                heart.classList.remove('fa-regular'); // Xóa icon rỗng
+                heart.classList.add('fa-solid'); // Thêm icon đầy
+                heart.classList.add('is-active'); // Hiển thị màu đỏ nếu đã "like"
+            } else {
+                heart.classList.remove('fa-solid'); // Xóa icon đầy
+                heart.classList.add('fa-regular'); // Trở về icon rỗng
+                heart.classList.remove('is-active'); // Trạng thái ban đầu nếu chưa "like"
             }
         });
-
     </script>
 }

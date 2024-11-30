@@ -1,7 +1,32 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication\\",
-  "Documents": [],
+  "WorkspaceRootPath": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|d:\\finalproject\\code_raw\\be\\rawapplication_28112024\\rawapplication\\rawmvc\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|solutionrelative:rawmvc\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|d:\\finalproject\\code_raw\\be\\rawapplication_28112024\\rawapplication\\rawmvc\\views\\home\\fullsearch.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|solutionrelative:rawmvc\\views\\home\\fullsearch.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|d:\\finalproject\\code_raw\\be\\rawapplication_28112024\\rawapplication\\rawmvc\\controllers\\storycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|solutionrelative:rawmvc\\controllers\\storycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|d:\\finalproject\\code_raw\\be\\rawapplication_28112024\\rawapplication\\rawmvc\\controllers\\chaptercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|solutionrelative:rawmvc\\controllers\\chaptercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|d:\\finalproject\\code_raw\\be\\rawapplication_28112024\\rawapplication\\rawmvc\\views\\chapter\\detail.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|solutionrelative:rawmvc\\views\\chapter\\detail.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|d:\\finalproject\\code_raw\\be\\rawapplication_28112024\\rawapplication\\rawmvc\\views\\story\\detail.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F5FDAE23-9232-4C5E-8F84-65D3A3E23BFB}|RaWMVC\\RaWMVC.csproj|solutionrelative:rawmvc\\views\\story\\detail.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,11 +34,85 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 4,
           "Children": [
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ChapterController.cs",
+              "DocumentMoniker": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Controllers\\ChapterController.cs",
+              "RelativeDocumentMoniker": "RaWMVC\\Controllers\\ChapterController.cs",
+              "ToolTip": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Controllers\\ChapterController.cs",
+              "RelativeToolTip": "RaWMVC\\Controllers\\ChapterController.cs",
+              "ViewState": "AQIAABIBAAAAAAAAAAAowCMBAAAQAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-11-30T11:09:46.33Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "StoryController.cs",
+              "DocumentMoniker": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Controllers\\StoryController.cs",
+              "RelativeDocumentMoniker": "RaWMVC\\Controllers\\StoryController.cs",
+              "ToolTip": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Controllers\\StoryController.cs",
+              "RelativeToolTip": "RaWMVC\\Controllers\\StoryController.cs",
+              "ViewState": "AQIAAAsBAAAAAAAAAAAAABUBAAApAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-11-30T11:00:47.534Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Detail.cshtml",
+              "DocumentMoniker": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Views\\Story\\Detail.cshtml",
+              "RelativeDocumentMoniker": "RaWMVC\\Views\\Story\\Detail.cshtml",
+              "ToolTip": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Views\\Story\\Detail.cshtml",
+              "RelativeToolTip": "RaWMVC\\Views\\Story\\Detail.cshtml",
+              "ViewState": "AQIAAG4AAAAAAAAAAAAcwHoAAAAtAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2024-11-30T10:54:54.485Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Detail.cshtml",
+              "DocumentMoniker": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Views\\Chapter\\Detail.cshtml",
+              "RelativeDocumentMoniker": "RaWMVC\\Views\\Chapter\\Detail.cshtml",
+              "ToolTip": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Views\\Chapter\\Detail.cshtml",
+              "RelativeToolTip": "RaWMVC\\Views\\Chapter\\Detail.cshtml",
+              "ViewState": "AQIAAB4AAAAAAAAAAAAAADMAAAAOAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2024-11-30T10:54:39.087Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "HomeController.cs",
+              "DocumentMoniker": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Controllers\\HomeController.cs",
+              "RelativeDocumentMoniker": "RaWMVC\\Controllers\\HomeController.cs",
+              "ToolTip": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Controllers\\HomeController.cs",
+              "RelativeToolTip": "RaWMVC\\Controllers\\HomeController.cs",
+              "ViewState": "AQIAANwAAAAAAAAAAAAgwO8AAAAmAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-11-30T10:40:26.26Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "FullSearch.cshtml",
+              "DocumentMoniker": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Views\\Home\\FullSearch.cshtml",
+              "RelativeDocumentMoniker": "RaWMVC\\Views\\Home\\FullSearch.cshtml",
+              "ToolTip": "D:\\FinalProject\\Code_RaW\\BE\\RaWApplication_28112024\\RaWApplication\\RaWMVC\\Views\\Home\\FullSearch.cshtml",
+              "RelativeToolTip": "RaWMVC\\Views\\Home\\FullSearch.cshtml",
+              "ViewState": "AQIAAE8AAAAAAAAAAAAcwFsAAABOAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2024-11-30T10:17:37.422Z",
+              "EditorCaption": ""
             }
           ]
         }

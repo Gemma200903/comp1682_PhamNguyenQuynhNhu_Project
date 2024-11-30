@@ -33,7 +33,6 @@ namespace RaWMVC.Data.Entities
 
         //=== A story has many ===//
         public ICollection<Chapter> Chapters { get; set; }
-        public ICollection<ReadingListStory> ReadingListStories { get; set; }
         public virtual ICollection<Library> Libraries { get; set; } = new List<Library>();
         public ICollection<Report> Reports { get; set; }
     }

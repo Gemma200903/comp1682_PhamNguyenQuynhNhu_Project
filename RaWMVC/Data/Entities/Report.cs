@@ -14,7 +14,7 @@ namespace RaWMVC.Data.Entities
         public string UserId { get; set; }
         public string Username { get; set; }
         public string Reason { get; set; }
-        public string? Description { get; set; }
+        public string Description { get; set; }
 
         public bool IsReviewed { get; set; } = false;
         public bool IsApproved { get; set; } = false;

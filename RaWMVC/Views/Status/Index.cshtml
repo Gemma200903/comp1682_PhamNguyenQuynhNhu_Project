@@ -59,12 +59,11 @@
                     idStatus
                 },
                 success: function (data) {
-                    if (data.status) {
-                        ReloadStatusList();
-                    }
+                    toastr.success(data.message);
+                    ReloadStatusList();
                 },
                 error: function (err) {
-
+                    toastr.error(data.message || "Failed to delete status.");
                 },
                 complete: function (e) {
 

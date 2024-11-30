@@ -1,12 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using AspNetCoreHero.ToastNotification.Abstractions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaWMVC.Areas.Identity.Data;
 using RaWMVC.Data;
 using RaWMVC.Data.Entities;
-using RaWMVC.ViewComponents;
-using RaWMVC.ViewModels;
-using System.Composition;
 
 namespace RaWMVC.Controllers
 {
@@ -14,84 +12,127 @@ namespace RaWMVC.Controllers
     {
         private RaWDbContext _context;
         private UserManager<RaWMVCUser> _userManager;
+        private readonly INotyfService _notyf;
 
-        public CommentController(RaWDbContext context, UserManager<RaWMVCUser> userManager)
+        public CommentController(RaWDbContext context, UserManager<RaWMVCUser> userManager, INotyfService notyf)
         {
             _context = context;
             _userManager = userManager;
+            _notyf = notyf;
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string content)
+        public async Task<IActionResult> Create(string content, Guid chapterId)
         {
             if (string.IsNullOrEmpty(content))
             {
-                return Json(new { success = false, message = "Post content cannot be empty." });
+                _notyf.Warning("Comment content cannot empty");
+
+                return RedirectToAction("Detail", "Chapter", new { idChapter = chapterId });
             }
 
             var user = await _userManager.GetUserAsync(User);
-            var post = new Post
+            var chapter = await _context.Chapters   
+                        .Where(c => c.ChapterId == chapterId)
+                        .Include(c => c.Story)
+                        .FirstOrDefaultAsync();
+
+            if (chapter == null)
             {
-                PostId = Guid.NewGuid(),
+                _notyf.Warning("Chapter is null");
+
+                return RedirectToAction("Detail", "Chapter", new { idChapter = chapterId });
+            }
+
+            // Create new comment
+            var comment = new Comment
+            {
+                CommentId = Guid.NewGuid(),
                 UserId = user.Id,
                 Username = user.UserName,
                 ProfilePicture = user.ProfilePicture,
-                PostContent = content,
+                CommentContent = content,
+                ChapterId = chapter.ChapterId,
                 CreateOn = DateTime.Now
             };
 
-            _context.Posts.Add(post);
+            _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
 
-            // Get all followers of the user
-            var followers = await _context.Follows
-               .Where(f => f.FolloweeId.ToString() == user.Id)
-               .Select(f => f.FollowerId)
-               .ToListAsync();
-
-            // Create the profile link
-            var profileLink = Url.Action("Index", "Profile", new { userId = post.UserId }, Request.Scheme);
-
-            // Prepare notifications for followers
-            foreach (var followerId in followers)
+            if(chapter.Story.UserId != user.Id)
             {
-                var notification = new Notification
+                // Create notification for the story owner
+                var notification = new Data.Entities.Notification
                 {
-                    UserId = followerId.ToString(),
+                    NotificationId = Guid.NewGuid(),
+                    UserId = chapter.Story.UserId,  // Story owner
                     Username = user.UserName,
-                    Message = $"{user.UserName} has posted a new update.",
-                    Link = profileLink,
+                    Message = $"{user.UserName} commented on your chapter '{chapter.ChapterTitle}' in the story '{chapter.Story.StoryTitle}'",
                     CreatedDate = DateTime.Now
                 };
 
-                _context.Notifications.Add(notification); // Add notification to the context
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync(); // Save all changes, including notifications
+            // Return updated comments list
+            return RedirectToAction("Detail", "Chapter", new { idChapter = chapterId });
+        }
 
-            return Json(new { success = true, message = "The post has been posted on your profile." });
+        private async Task<List<Comment>> GetCommentsForChapter(Guid chapterId)
+        {
+            return await _context.Comments
+                        .Where(c => c.ChapterId == chapterId)
+                        .OrderByDescending(c => c.CreateOn)
+                        .ToListAsync();
         }
 
         public async Task<IActionResult> Delete(Guid idComment, Guid chapterId)
         {
             bool isDeleted = false;
-            string message = "Comment not found.";
+            string message = "You do not have permission to delete this comment.";
 
             try
             {
-                //=== Retrieve Comment ===//
+                // === Retrieve Comment === //
                 var comment = await _context.Comments
                     .Where(c => c.ChapterId.Equals(chapterId))
                     .SingleOrDefaultAsync(c => c.CommentId == idComment);
 
                 if (comment != null)
                 {
-                    //=== Remove Comment ===//
-                    _context.Comments.Remove(comment);
-                    await _context.SaveChangesAsync();
+                    // Get current user
+                    var user = await _userManager.GetUserAsync(User);
 
-                    isDeleted = true;
-                    message = "Comment deleted successfully.";
+                    var chapter = await _context.Chapters
+                        .Where(c => c.ChapterId == chapterId)
+                        .Include(c => c.Story)
+                        .FirstOrDefaultAsync();
+
+                    if (chapter == null)
+                    {
+                        message = "Chapter not found.";
+                        return Json(new { isDeleted, message, chapterId });
+                    }
+
+                    // === Check permissions === //
+                    bool isAuthor = chapter.Story.UserId == user.Id;
+                    bool isCommenter = comment.UserId == user.Id;
+                    bool isAdmin = await _userManager.IsInRoleAsync(user, "Admintrator"); 
+
+                    if (isAuthor || isCommenter || isAdmin)
+                    {
+                        // === Remove Comment === //
+                        _context.Comments.Remove(comment);
+                        await _context.SaveChangesAsync();
+
+                        isDeleted = true;
+                        message = "Comment deleted successfully.";
+                    }
+                }
+                else
+                {
+                    message = "Comment not found.";
                 }
             }
             catch

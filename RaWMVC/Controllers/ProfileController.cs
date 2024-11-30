@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaWMVC.Areas.Identity.Data;
 using RaWMVC.Data;
-using RaWMVC.Data.Entities;
 using RaWMVC.ViewModels;
 
 namespace RaWMVC.Controllers
@@ -31,22 +30,11 @@ namespace RaWMVC.Controllers
 
             //=== Check the user's following status ===//
             var isFollowing = await _context.Follows.AnyAsync(f =>
-                f.FollowerId == Guid.Parse(currentUser.Id) && f.FolloweeId == Guid.Parse(userId));
+                            f.FollowerId == Guid.Parse(currentUser.Id) &&
+                            f.FolloweeId == Guid.Parse(userId));
 
             //=== Count the number of followers and the number of reading lists ===//
             var followersCount = await _context.Follows.CountAsync(f => f.FolloweeId == Guid.Parse(userId));
-            var readingListCount = await _context.ReadingLists.CountAsync(rl => rl.UserId == userId);
-
-            //=== Get ReadingList ===//
-            var currentReadingStories = await _context.ReadingLists
-                .Where(rl => rl.UserId == userId && rl.Name == "Current List")
-                .SelectMany(rl => rl.ReadingListStories)
-                .Select(s => new LibraryViewModel
-                {
-                    StoryId = s.StoryId,
-                    StoryTitle = s.Story.StoryTitle,
-                    Media = s.Story.Medium
-                }).ToListAsync();
 
             //=== Get Follower List ==//
             var followers = await _context.Follows
@@ -54,16 +42,28 @@ namespace RaWMVC.Controllers
                 .Select(f => f.FollowerId)
                 .ToListAsync();
 
-            var followViewModels = await Task.WhenAll(followers.Select(async followerId =>
+            var followings = await _context.Follows
+                .Where(f => f.FolloweeId == Guid.Parse(userId))
+                .Select(f => new FollowViewModel
+                {
+                    FollowerId = f.FollowerId,
+                    //ProfilePicture = f.ProfilePicture,
+                })
+                .Take(12)
+                .ToListAsync();
+
+            var followViewModels = new List<FollowViewModel>();
+
+            foreach (var followerId in followers)
             {
                 var followerUser = await _userManager.FindByIdAsync(followerId.ToString());
-                return followerUser == null ? null : new FollowViewModel
+                followViewModels.Add(new FollowViewModel
                 {
                     UserId = followerUser.Id,
                     Username = followerUser.UserName,
                     ProfilePicture = followerUser.ProfilePicture
-                };
-            }));
+                });
+            }
 
             var model = new ProfileViewModel
             {
@@ -73,19 +73,12 @@ namespace RaWMVC.Controllers
                 JoinedDate = profileUser.JoinedDate,
                 IsFollowing = isFollowing,
                 FollowersCount = followersCount,
-                ReadingListCount = readingListCount,
-                CurrentReadingStories = currentReadingStories,
                 Introduction = profileUser.Introduction,
-                ReadingLists = await _context.ReadingLists
-                    .Where(rl => rl.UserId == userId)
-                    .Select(rl => new ReadingList
-                    {
-                        ReadingListsId = rl.ReadingListsId,
-                        Name = rl.Name,
-                    }).ToListAsync(),
+                FollowingUsers = followings,
                 Follows = followViewModels.Where(f => f != null).ToList(),
                 Posts = await _context.Posts
                     .Where(p => p.UserId == userId)
+                    .OrderBy(p => p.CreateOn)
                     .Select(p => new PostViewModel
                     {
                         PostId = p.PostId,
@@ -95,6 +88,7 @@ namespace RaWMVC.Controllers
                         CreateOn = p.CreateOn,
                         Replies = _context.Replies
                             .Where(r => r.PostId == p.PostId)
+                            .OrderBy(r => r.CreateAt)
                             .Select(r => new ReplyViewModel
                             {
                                 ReplyId = r.ReplyId,

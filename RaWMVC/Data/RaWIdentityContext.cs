@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using RaW.MVC.Data.Configurations;
 using RaWMVC.Areas.Identity.Data;
-using RaWMVC.Data.Entities;
 
 namespace RaWMVC.Data
 {

@@ -16,7 +16,7 @@
 <hr />
 <div class="row">
     <div class="col-md-6">
-        <form asp-action="@actionString" method="post">
+        <form asp-action="@actionString">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="card">
@@ -42,17 +42,9 @@
             <div class="card">
                 <div class="card-body">
                     <label class="control-label">Select Role</label>
-                    <select asp-for="Role" class="form-control" required>
-                        <option value="">-- Select a Role --</option>
-                        @if (roles != null && roles.Any())
-                        {
-                            @foreach (var role in roles)
-                            {
-                                <option value="@role.Name">@role.Name</option>
-                            }
-                        }
+                    <select asp-for="RoleId" asp-items="ViewBag.Roles" class="form-control" required>
                     </select>
-                    <span asp-validation-for="Role" class="text-danger"></span>
+                    <span asp-validation-for="RoleId" class="text-danger"></span>
                 </div>
             </div>
 
@@ -79,12 +71,11 @@
                     id
                 },
                 success: function (data) {
-                    if (data.status) {
-                        ReloadAccountList();
-                    }
+                    toastr.success(data.message);
+                    ReloadAccountList();
                 },
                 error: function (err) {
-
+                    toastr.error(data.message || "Failed to delete account.");
                 },
                 complete: function (e) {
 

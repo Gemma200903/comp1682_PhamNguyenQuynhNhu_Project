@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AspNetCoreHero.ToastNotification.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RaWMVC.Areas.Identity.Data;
 using RaWMVC.Data;
@@ -16,10 +16,13 @@ namespace RaWMVC.Controllers
     {
         private readonly RaWDbContext _context;
         private readonly UserManager<RaWMVCUser> _userManager;
-        public ChapterController(RaWDbContext context, UserManager<RaWMVCUser> userManager)
+        private readonly INotyfService _notyf;
+
+        public ChapterController(RaWDbContext context, UserManager<RaWMVCUser> userManager, INotyfService notyf)
         {
             _context = context;
             _userManager = userManager;
+            _notyf = notyf;
         }
 
         [Authorize(Roles = "Author, Admintrator")]
@@ -57,10 +60,43 @@ namespace RaWMVC.Controllers
                     PublishDate = DateTime.Now,
                     StoryId = ChapterVM.StoryId,
                     IsPublished = isPublish,
-                    IsDraft = !isPublish // Nếu không xuất bản, đánh dấu là draft
+                    IsDraft = !isPublish
                 };
 
                 _context.Chapters.Add(Chapter);
+                await _context.SaveChangesAsync();
+
+                // Nếu chương được xuất bản, thông báo cho tất cả các follower của tác giả
+                if (isPublish == true)
+                {
+                    var story = await _context.Stories
+                            .Where(s => s.StoryId == ChapterVM.StoryId)
+                            .FirstOrDefaultAsync();
+
+                    // Get all followers of the user
+                    var followers = await _context.Follows
+                       .Where(f => f.FolloweeId.ToString() == story.UserId)
+                       .Select(f => f.FollowerId)
+                       .ToListAsync();
+
+                    var chapterLink = Url.Action("Detail", "Story", new { isStory = story.StoryId }, Request.Scheme);
+
+                    // Prepare notifications for followers
+                    foreach (var followerId in followers)
+                    {
+                        var notification = new Data.Entities.Notification
+                        {
+                            UserId = followerId.ToString(),
+                            Username = story.Username,
+                            Message = $"New chapter '{Chapter.ChapterTitle}' has been published by {story.Username}.",
+                            Link = chapterLink,
+                            CreatedDate = DateTime.Now
+                        };
+
+                        _context.Notifications.Add(notification);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = isPublish ? "Chapter published successfully." : "Chapter saved as draft successfully." });
@@ -113,6 +149,40 @@ namespace RaWMVC.Controllers
 
             await _context.SaveChangesAsync();
 
+            // Nếu chương được xuất bản, thông báo cho tất cả các follower của tác giả
+            if (isPublish == true)
+            {
+                var story = await _context.Stories
+                        .Where(s => s.StoryId == chapterVM.StoryId)
+                        .FirstOrDefaultAsync();
+
+                // Get all followers of the user
+                var followers = await _context.Follows
+                   .Where(f => f.FolloweeId.ToString() == story.UserId)
+                   .Select(f => f.FollowerId)
+                   .ToListAsync();
+
+                var chapterLink = Url.Action("Detail", "Story", new { isStory = story.StoryId }, Request.Scheme);
+
+                // Prepare notifications for followers
+                foreach (var followerId in followers)
+                {
+                    var notification = new Data.Entities.Notification
+                    {
+                        UserId = followerId.ToString(),
+                        Username = story.Username,
+                        Message = $"New chapter '{chapter.ChapterTitle}' has been published by {story.Username}.",
+                        Link = chapterLink,
+                        CreatedDate = DateTime.Now
+                    };
+
+                    _context.Notifications.Add(notification);
+                }
+                await _context.SaveChangesAsync();
+
+            }
+
+
             return Json(new { success = true, message = "Chapter updated successfully." });
         }
 
@@ -151,6 +221,7 @@ namespace RaWMVC.Controllers
                 }
                 await _context.SaveChangesAsync();
 
+                message = "Chapter has been deleted successfully.";
                 Chapter = true;
             }
             catch
@@ -176,6 +247,7 @@ namespace RaWMVC.Controllers
                 .Where(c => c.ChapterId == idChapter)
                 .Select(c => new ChapterViewModel
                 {
+                    StoryId = c.Story.StoryId,
                     ChapterId = c.ChapterId,
                     ChapterTitle = c.ChapterTitle,
                     ChapterContent = c.ChapterContent,
@@ -184,6 +256,11 @@ namespace RaWMVC.Controllers
                     Username = c.Story.Username,
                     Comments = c.Comments.ToList()
                 })
+                .FirstOrDefaultAsync();
+
+            var nextChapter = await _context.Chapters
+                .Where(c => c.StoryId == chapter.StoryId && c.IsPublished == true && c.ChapterId > chapter.ChapterId)
+                .OrderBy(c => c.ChapterId)
                 .FirstOrDefaultAsync();
 
             if (chapter == null || !chapter.IsPublished)
@@ -213,14 +290,27 @@ namespace RaWMVC.Controllers
             await _context.SaveChangesAsync();
 
             var user = await _userManager.GetUserAsync(User);
+
             bool isLiked = false;
+
             if (user != null)
             {
-                // Kiểm tra xem người dùng đã like chưa
                 isLiked = await _context.Like.AnyAsync(l => l.ChapterId == idChapter && l.UserId == user.Id);
             }
 
+            var chapterReadCounts = await _context.ChapterReadCounts
+                .Where(cr => cr.ChapterId != null)
+                .GroupBy(cr => cr.ChapterId)
+                .Select(g => new
+                {
+                    ChapterId = g.Key,
+                    ReadCount = g.Count()
+                })
+                .ToListAsync();
+
+            // Lấy các truyện gợi ý
             var suggestedStories = await _context.Stories
+                .Include(s => s.Chapters)
                 .Take(3)
                 .Select(s => new StoryViewModel
                 {
@@ -231,9 +321,12 @@ namespace RaWMVC.Controllers
                     {
                         FileName = s.Medium.FileName,
                         Extension = s.Medium.Extension
-                    }
+                    },
                 })
                 .ToListAsync();
+
+            var idStory = chapter.StoryId;
+            var chapterList = await GetChaptersByStoryId(idStory);
 
             var chapterDetailVM = new ChapterDetailViewModel
             {
@@ -242,9 +335,11 @@ namespace RaWMVC.Controllers
                 SuggestedStories = suggestedStories,
                 LikeCount = likeCount,
                 IsLiked = isLiked,
-                //UserId = userId,
+                Chapters = chapterList.ToList(),
+                ProfilePicture = user.ProfilePicture,
                 UserId = chapter.UserId,
                 Username = chapter.Username,
+                NextChapter = nextChapter,
                 CommentVM = new CommentViewModel
                 {
                     Comments = chapter.Comments.ToList()
@@ -254,7 +349,6 @@ namespace RaWMVC.Controllers
             return View(chapterDetailVM);
         }
 
-
         public int GetTotalReadCount(Guid idChapter)
         {
             var chapter = _context.Chapters
@@ -262,6 +356,22 @@ namespace RaWMVC.Controllers
                 .FirstOrDefault();
 
             return _context.ChapterReadCounts.Count(cr => cr.ChapterId == chapter.ChapterId);
+        }
+
+        private async Task<IEnumerable<ChapterViewModel>> GetChaptersByStoryId(Guid storyId)
+        {
+            var chapters = await _context.Chapters
+                .Where(c => c.StoryId.Equals(storyId))
+                .OrderBy(c => c.PublishDate)
+                .ToListAsync();
+
+            // Chắc chắn trả về một danh sách, không phải null
+            return chapters.Select(c => new ChapterViewModel
+            {
+                ChapterId = c.ChapterId,
+                ChapterTitle = c.ChapterTitle,
+                PublishDate = c.PublishDate
+            });
         }
     }
 }

@@ -1,56 +1,72 @@
-﻿using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using RaWMVC.Data;
 
 public class StoryDeletionService : IHostedService, IDisposable
 {
     private Timer _timer;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<StoryDeletionService> _logger;
 
-    public StoryDeletionService(IServiceScopeFactory scopeFactory)
+    public StoryDeletionService(IServiceScopeFactory scopeFactory, ILogger<StoryDeletionService> logger)
     {
         _scopeFactory = scopeFactory;
+        _logger = logger;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        //=== Configure Timer to execute DeleteScheduledStories every hour ===//
-        _timer = new Timer(DeleteScheduledStories, null, TimeSpan.Zero, TimeSpan.FromHours(1));
+        _logger.LogInformation("StoryDeletionService started.");
+        // Thiết lập Timer để thực hiện công việc mỗi giờ
+        _timer = new Timer(async _ => await DeleteScheduledStoriesAsync(), null, TimeSpan.Zero, TimeSpan.FromHours(1));
         return Task.CompletedTask;
     }
 
-    private async void DeleteScheduledStories(object state)
+    private async Task DeleteScheduledStoriesAsync()
     {
         using (var scope = _scopeFactory.CreateScope())
         {
-            var context = scope.ServiceProvider.GetRequiredService<RaWDbContext>();
-
-            var now = DateTime.Now;
-            var scheduledDeletes = await context.ScheduledDeletes
-                .Where(sd => sd.ScheduledTime <= now)
-                .ToListAsync();
-
-            foreach (var scheduledDelete in scheduledDeletes)
+            try
             {
-                var story = await context.Stories.FindAsync(scheduledDelete.StoryId);
-                if (story != null)
+                var context = scope.ServiceProvider.GetRequiredService<RaWDbContext>();
+                var now = DateTime.UtcNow; // Sử dụng UTC để tránh lỗi múi giờ
+                var scheduledDeletes = await context.ScheduledDeletes
+                    .Where(sd => sd.ScheduledTime <= now)
+                    .ToListAsync();
+
+                if (scheduledDeletes.Any())
                 {
-                    context.Stories.Remove(story);
+                    _logger.LogInformation($"Found {scheduledDeletes.Count} stories scheduled for deletion.");
+                }
+
+                foreach (var scheduledDelete in scheduledDeletes)
+                {
+                    var story = await context.Stories.FindAsync(scheduledDelete.StoryId);
+                    if (story != null)
+                    {
+                        context.Stories.Remove(story);
+                        _logger.LogInformation($"Story with ID {story.StoryId} has been deleted.");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Story with ID {scheduledDelete.StoryId} not found.");
+                    }
+
                     context.ScheduledDeletes.Remove(scheduledDelete);
                 }
-            }
 
-            await context.SaveChangesAsync();
+                await context.SaveChangesAsync();
+                _logger.LogInformation("Scheduled stories deletion process completed.");
+            }
+            catch
+            {
+                _logger.LogError("An error occurred during story deletion.");
+            }
         }
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("StoryDeletionService stopping.");
         _timer?.Change(Timeout.Infinite, 0);
         return Task.CompletedTask;
     }

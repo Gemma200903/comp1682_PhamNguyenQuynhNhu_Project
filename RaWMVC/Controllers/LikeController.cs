@@ -17,7 +17,6 @@ namespace RaWMVC.Controllers
             _userManager = userManager;
         }
 
-
         [HttpPost]
         public async Task<IActionResult> ToggleLike(Guid chapterId)
         {
@@ -29,18 +28,18 @@ namespace RaWMVC.Controllers
 
             try
             {
-                // Check if the user has liked this chapter
+                // Kiểm tra trạng thái hiện tại (đã like hay chưa)
                 var existingLike = await _context.Like
                     .FirstOrDefaultAsync(l => l.ChapterId == chapterId && l.UserId == user.Id);
 
                 if (existingLike != null)
                 {
-                    // If liked, then remove the like
+                    // Nếu đã like, thì bỏ like
                     _context.Like.Remove(existingLike);
                 }
                 else
                 {
-                    // Add a new like
+                    // Thêm mới hành động like
                     var like = new Like
                     {
                         LikeId = Guid.NewGuid(),
@@ -49,21 +48,34 @@ namespace RaWMVC.Controllers
                     };
 
                     var chapter = await _context.Chapters
-                        .Include(c => c.Story) // Include the Story entity
+                        .Include(c => c.Story) // Include Story entity
                         .FirstOrDefaultAsync(c => c.ChapterId == chapterId);
 
                     if (chapter != null)
                     {
-                        // Create a notification for the story author
-                        var notification = new Notification
+                        // Kiểm tra thông báo gần nhất
+                        var lastNotification = await _context.Notifications
+                            .Where(n => n.UserId == chapter.Story.UserId
+                                        && n.Username == user.UserName
+                                        && n.Message.Contains($"liked your chapter '{chapter.ChapterTitle}'"))
+                            .OrderByDescending(n => n.CreatedDate)
+                            .FirstOrDefaultAsync();
+
+                        // Nếu không có thông báo hoặc đã hơn 30 phút
+                        if (lastNotification == null ||
+                            (DateTime.Now - lastNotification.CreatedDate).TotalMinutes > 30)
                         {
-                            NotificationId = Guid.NewGuid(),
-                            UserId = chapter.Story.UserId,
-                            Username = user.UserName,
-                            Message = $"{user.UserName} liked your chapter '{chapter.ChapterTitle}' in the story '{chapter.Story.StoryTitle}'",
-                            CreatedDate = DateTime.Now
-                        };
-                        _context.Notifications.Add(notification);
+                            // Tạo thông báo mới
+                            var notification = new Notification
+                            {
+                                NotificationId = Guid.NewGuid(),
+                                UserId = chapter.Story.UserId,
+                                Username = user.UserName,
+                                Message = $"{user.UserName} liked your chapter '{chapter.ChapterTitle}' in the story '{chapter.Story.StoryTitle}'",
+                                CreatedDate = DateTime.Now
+                            };
+                            _context.Notifications.Add(notification);
+                        }
                     }
 
                     _context.Like.Add(like);
@@ -71,14 +83,14 @@ namespace RaWMVC.Controllers
 
                 await _context.SaveChangesAsync();
 
-                // Recount the number of likes for the chapter
+                // Đếm lại số lượt like
                 var likeCount = await _context.Like.CountAsync(l => l.ChapterId == chapterId);
 
                 return Json(new { success = true, likeCount, isLiked = existingLike == null });
             }
             catch (Exception ex)
             {
-                // Log the exception for debugging purposes if needed
+                // Log lỗi để kiểm tra nếu cần
                 return Json(new { success = false, message = "An error occurred while toggling the like." });
             }
         }

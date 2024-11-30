@@ -1,0 +1,98 @@
+﻿@page
+@model RegisterAuthorModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="authentication_container">
+    <div class="container_authentication right-panel-active" id="container">
+        <div class="form-container sign-up-container">
+            <form class="form_authentication" id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                <h2 class="title_authentication text-uppercase">Create account as Author</h2>
+                <div class="social-container">
+                    <a href="#" class="social link_authentication">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="social link_authentication">
+                        <i class="fab fa-google-plus-g"></i>
+                    </a>
+                    <a href="#" class="social link_authentication">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                </div>
+                <span class="option_authentication">you can also register using a username.</span>
+                @*** Input Username ***@
+                <input asp-for="Input.UserName" class="inp_authentication" autocomplete="username" aria-required="true" placeholder="Username_123" />
+                <span asp-validation-for="Input.UserName" class="text-danger"></span>
+
+                @*** Input Password ***@
+                <div class="password-container w-100 mt-2  position-relative">
+                    <input asp-for="Input.Password" class="inp_authentication pr-5"
+                           id="Password-field" type="password" autocomplete="current-password"
+                           aria-required="true" placeholder="Confirm password" />
+                    <button class="btn toggle-password position-absolute" type="button" tabindex="-1"
+                            style="right: 10px; top: 50%; transform: translateY(-50%);">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Input.Password" class="text-danger"></span>
+
+                <div class="password-container w-100 mt-2 position-relative">
+                    <input asp-for="Input.ConfirmPassword" class="inp_authentication pr-5"
+                           id="confirmPassword-field" type="password" autocomplete="current-password"
+                           aria-required="true" placeholder="Confirm password" />
+                    <button class="btn toggle-password position-absolute" type="button" tabindex="-1"
+                            style="right: 10px; top: 50%; transform: translateY(-50%);">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+
+                @*** Button Form ***@
+                <button id="registerSubmit" type="submit" class="btn_authentication">Register</button>
+            </form>
+        </div>
+        <div class="overlay-container">
+            <div class="overlay">
+                <div class="overlay-panel overlay-left">
+                    <h1 class="title_authentication">
+                        Welcome to our RaW community!
+                    </h1>
+                    <img class="img_authentication"
+                         src="~/assets/img/bg_authentication.png"
+                         alt="" />
+                    <a asp-page="./Login" asp-route-returnUrl="@Model.ReturnUrl" class="ghost link_signup" id="signIn">Sign In</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function togglePasswordVisibility(fieldId, toggleButton) {
+            const passwordField = document.getElementById(fieldId);
+            const icon = toggleButton.querySelector('i');
+
+            if (passwordField) {
+                const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordField.setAttribute('type', type);
+
+                // Toggle the icon class
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            } else {
+                console.error(`Field with ID '${fieldId}' not found.`);
+            }
+        }
+
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', function () {
+                const fieldId = this.previousElementSibling.id;
+                togglePasswordVisibility(fieldId, this);
+            });
+        });
+    </script>
+}
+

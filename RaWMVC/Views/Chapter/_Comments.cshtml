@@ -23,7 +23,7 @@
         <div class="user_comment comment mt-3">
             <div class="user_info justify-content-between w-100">
                 <div class="w-75 d-flex">
-                    <img src="~/assets/img/mascot_fox.png" alt="user" />
+                    <img src="@comment.ProfilePicture" alt="user" />
                     <p>@comment.Username</p>
                 </div>
                 <div class="btn-group h-50 d-flex text-center justify-content-center align-middle">
@@ -31,7 +31,7 @@
                         <i class="fa-solid fa-ellipsis-vertical"></i>
                     </button>
                     <ul class="dropdown-menu">
-                        <button onclick="deleteComment('@comment.CommentId')" class="btn">Delete</button>
+                        <button type="button" onclick="deleteComment('@comment.CommentId')" class="btn">Delete</button>
                     </ul>
                 </div>
             </div>

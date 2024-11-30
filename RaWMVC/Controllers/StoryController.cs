@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AspNetCoreHero.ToastNotification.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -10,7 +11,6 @@ using RaWMVC.Data.Entities;
 using RaWMVC.Enums;
 using RaWMVC.ViewComponents;
 using RaWMVC.ViewModels;
-using System.Diagnostics.Eventing.Reader;
 
 namespace RaWMVC.Controllers
 {
@@ -19,11 +19,14 @@ namespace RaWMVC.Controllers
         private readonly UserManager<RaWMVCUser> _userManager;
         private readonly RaWDbContext _context;
         private readonly IWebHostEnvironment _environment;
-        public StoryController(RaWDbContext context, IWebHostEnvironment environment, UserManager<RaWMVCUser> userManager)
+        private readonly INotyfService _notyf;
+
+        public StoryController(RaWDbContext context, IWebHostEnvironment environment, UserManager<RaWMVCUser> userManager, INotyfService notyf)
         {
             _context = context;
             _environment = environment;
             _userManager = userManager;
+            _notyf = notyf;
         }
         [Authorize(Roles = "Author")]
         //=============== Index ===============//
@@ -40,14 +43,14 @@ namespace RaWMVC.Controllers
 
         [Authorize(Roles = "Author")]
         //=============== Create ===============//
-        public async Task<IActionResult> ReportStory()
+        public async Task<IActionResult> Create()
         {
             //ViewBag.Tags = await GetTagsSelectList();
             //ViewBag.Status = await GetStatusSelectList();
             //ViewBag.Genres = await GetGenreSelectList();
             await PopulateViewBagsAsync();
 
-            return PartialView(nameof(ReportStory));
+            return PartialView(nameof(Create));
         }
 
         [Authorize(Roles = "Author")]
@@ -57,25 +60,16 @@ namespace RaWMVC.Controllers
             try
             {
                 var user = await _userManager.GetUserAsync(User);
-                if (user == null)
-                {
-                    TempData["Message"] = "User not logged in or content is empty.";
-                    return Json(new { success = false, messageFail = "User not logged in." });
-                }
 
+                // Save the uploaded file
                 var fileImage = await SaveMedia(storyVM.CoverImage);
 
                 if (fileImage == null)
                 {
-                    //ViewBag.Tags = await GetTagsSelectList();
-                    //ViewBag.Status = await GetStatusSelectList();
-                    //ViewBag.Genres = await GetGenreSelectList();
                     await PopulateViewBagsAsync();
-
                     return Json(new { success = false, messageFail = "You must add a file cover image." });
                 }
 
-                var countStory = await _context.Stories.CountAsync();
                 var newStory = new Story
                 {
                     StoryTitle = storyVM.StoryTitle.Trim(),
@@ -86,25 +80,19 @@ namespace RaWMVC.Controllers
                     PublishDate = DateTime.Now,
                     UserId = user.Id,
                     Username = user.UserName,
-                    MediumId = fileImage.Id,
-                    Position = countStory + 1
+                    MediumId = fileImage.Id, // Link to the image file in your database
+                    Position = await _context.Stories.CountAsync() + 1
                 };
+
                 _context.Stories.Add(newStory);
                 await _context.SaveChangesAsync();
 
-                TempData["MessageSuccess"] = "Added story successfully";
-
-                return Json(new { success = true, messageSuccess = "Added story successfully" });
+                return Json(new { success = true, message = "Story added successfully" });
             }
-            catch(Exception ex)
+            catch
             {
-
-                var innerException = ex.InnerException?.Message ?? ex.Message;
-                TempData["MessageFail"] = $"Failed to add story: {innerException}";
-
                 await PopulateViewBagsAsync();
-
-                return Json(new { success = false, messageFail = "Failed to add story.{innerException}" });
+                return Json(new { success = false, message = "Failed to add story." });
             }
         }
 
@@ -114,8 +102,9 @@ namespace RaWMVC.Controllers
         public async Task<IActionResult> Edit(Guid idStory)
         {
             var story = await _context.Stories
-                .Include(s => s.Chapters)
                 .Where(s => s.StoryId.Equals(idStory))
+                .Include(s => s.Chapters)
+                .Include(s => s.Medium)
                 .SingleOrDefaultAsync();
 
             if (story == null) return BadRequest();
@@ -129,6 +118,9 @@ namespace RaWMVC.Controllers
                 GenreId = story.GenreId,
                 StatusId = story.StatusId,
             };
+
+            var urlImage = Url.Content($"~/storyImg/{story.Medium?.FileName}.{story.Medium?.Extension}");
+            ViewBag.CoverImage = urlImage;
 
             await PopulateViewBagsAsync();
 
@@ -144,15 +136,15 @@ namespace RaWMVC.Controllers
             {
                 var story = await _context.Stories.FindAsync(storyVM.StoryId);
 
-                if(story == null) return BadRequest();
+                if (story == null) return BadRequest();
 
-                var fileImage = await SaveMedia(storyVM.CoverImage);
+                var fileImage = storyVM.CoverImage != null ? await SaveMedia(storyVM.CoverImage) : null;
 
-                if (fileImage == null)
+                if (fileImage == null && story.MediumId == null)
                 {
+                    // Nếu không có file ảnh mới và câu chuyện không có ảnh cũ, trả về lỗi
                     await PopulateViewBagsAsync();
-
-                    return Json(new { success = false, messageFail = "You must add a file cover image." });
+                    return Json(new { success = false, messageFail = "You must add a cover image." });
                 }
 
                 story.StoryTitle = storyVM.StoryTitle;
@@ -160,24 +152,22 @@ namespace RaWMVC.Controllers
                 story.GenreId = storyVM.GenreId;
                 story.TagId = storyVM.TagId;
                 story.StatusId = storyVM.StatusId;
-                //story.MediumId = fileImage.Id;
 
                 if (fileImage != null)
                 {
                     story.MediumId = fileImage.Id;
                 }
+
                 _context.Update(story);
                 await _context.SaveChangesAsync();
 
-                TempData["MessageSuccess"] = "Story edited successfully";
-
-                return PartialView("Edit", storyVM);
+                return Json(new { success = false, message = "Story edited successfully" });
             }
             catch
             {
-                TempData["MessageFail"] = "Failed to edited story";
 
-                return PartialView("Edit", storyVM);
+                await PopulateViewBagsAsync();
+                return Json(new { success = false, message = "Failed to edited story" });
             }
 
         }
@@ -216,7 +206,7 @@ namespace RaWMVC.Controllers
                     _context.Stories.Remove(storyVM);
                 }
                 await _context.SaveChangesAsync();
-
+                message = "Delete story successfully";
                 story = true;
             }
             catch
@@ -236,21 +226,7 @@ namespace RaWMVC.Controllers
         //=============== Detail ===============//
         public async Task<IActionResult> Detail(Guid idStory)
         {
-            var suggestStories = await _context.Stories
-                .Take(3)
-                .Select(c => new StoryViewModel
-                {
-                    StoryId = c.StoryId,
-                    StoryTitle = c.StoryTitle,
-                    StoryDescription = c.StoryDescription,
-                    Medium = new Medium
-                    {
-                        FileName = c.Medium.FileName,
-                        Extension = c.Medium.Extension
-                    }
-                })
-                .ToListAsync();
-
+            // Lấy thông tin câu chuyện
             var story = await _context.Stories
                 .Include(s => s.Chapters)
                 .Include(s => s.Medium)
@@ -260,9 +236,15 @@ namespace RaWMVC.Controllers
                 .Where(s => s.StoryId.Equals(idStory))
                 .FirstOrDefaultAsync();
 
+            if (story == null)
+            {
+                return NotFound("Story not found.");
+            }
 
+            // Lấy danh sách ID của các chapter
             var chapterIds = story.Chapters.Select(c => c.ChapterId).ToList();
 
+            // Đếm số lượt đọc của từng chapter
             var chapterReadCounts = await _context.ChapterReadCounts
                 .Where(cr => chapterIds.Contains(cr.ChapterId))
                 .GroupBy(cr => cr.ChapterId)
@@ -273,23 +255,42 @@ namespace RaWMVC.Controllers
                 })
                 .ToListAsync();
 
+            // Đếm tổng số lượt thích của từng chapter
+            var chapterLikeCounts = await _context.Like
+                .Where(l => chapterIds.Contains(l.ChapterId))
+                .GroupBy(l => l.ChapterId)
+                .Select(g => new
+                {
+                    ChapterId = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            // Lấy tổng số lượt đọc và lượt thích
+            var totalReadCount = chapterReadCounts.Sum(c => c.Count);
+            var totalLikeCount = chapterLikeCounts.Sum(c => c.Count);
+
+            // Lấy thông tin người dùng hiện tại
             var user = await _userManager.GetUserAsync(User);
 
-            var readingLists = await _context.ReadingLists
-                .Where(rl => rl.UserId == user.Id)
-                .Select(rl => new ReadingList
+            // Lấy danh sách đề xuất câu chuyện
+            var suggestStories = await _context.Stories
+                .Include(s => s.Chapters)
+                .Take(3)
+                .Select(s => new StoryViewModel
                 {
-                    ReadingListsId = rl.ReadingListsId,
-                    Name = rl.Name
-                }).ToListAsync();
+                    StoryId = s.StoryId,
+                    StoryTitle = s.StoryTitle,
+                    StoryDescription = s.StoryDescription,
+                    Medium = new Medium
+                    {
+                        FileName = s.Medium.FileName,
+                        Extension = s.Medium.Extension
+                    },
+                })
+                .ToListAsync();
 
-            var totalReadCount = chapterReadCounts.Sum(c => c.Count);
-
-            var currentListId = await _context.ReadingLists
-                .Where(rl => rl.UserId == user.Id && rl.Name == "Current List") 
-                .Select(rl => rl.ReadingListsId)
-                .FirstOrDefaultAsync();
-
+            // Map dữ liệu sang ViewModel
             var storyVM = new StoryViewModel
             {
                 StoryId = story.StoryId,
@@ -297,11 +298,10 @@ namespace RaWMVC.Controllers
                 StoryDescription = story.StoryDescription,
                 SuggestedStories = suggestStories,
                 TotalReadCount = totalReadCount,
-                ReadingLists = readingLists,
+                TotalLikeCount = totalLikeCount,
                 UserId = story.UserId,
                 Username = story.Username,
-                ProfilePicture = user.ProfilePicture,
-                CurrentListId = currentListId,
+                ProfilePicture = user?.ProfilePicture ?? string.Empty,
                 StatusName = story.Status.StatusName,
                 GenreName = story.Genre.GenreName,
                 TagName = story.Tag.TagName,
@@ -319,6 +319,9 @@ namespace RaWMVC.Controllers
                         Position = c.Position,
                         PublishDate = c.PublishDate,
                         IsPublished = c.IsPublished,
+                        // Tính số lượt đọc và lượt thích cho từng chapter
+                        ReadCount = chapterReadCounts.FirstOrDefault(rc => rc.ChapterId == c.ChapterId)?.Count ?? 0,
+                        LikeCount = chapterLikeCounts.FirstOrDefault(lc => lc.ChapterId == c.ChapterId)?.Count ?? 0
                     })
                     .OrderBy(c => c.PublishDate)
                     .ToList()
@@ -326,6 +329,7 @@ namespace RaWMVC.Controllers
 
             return View(storyVM);
         }
+
 
         [Authorize(Roles = "Author")]
         //=============== List Chapter ===============//
@@ -354,7 +358,7 @@ namespace RaWMVC.Controllers
 
             if (story == null) return BadRequest();
 
-            return View(story); 
+            return View(story);
         }
 
         //=============== Get Data List ===============//

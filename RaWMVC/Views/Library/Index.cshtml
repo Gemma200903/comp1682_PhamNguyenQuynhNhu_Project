@@ -6,50 +6,36 @@
 
 <main>
     <div class="profile_content">
-        <div class="subnavigate d-flex">
-            <ul class="ms-5">
-                <li class="active">Current read</li>
-                <li>Reading Lists</li>  
-            </ul>
-        </div>
         <div id="current_read" class="content_table active main_content">
+            <h3 class="text-center w-100 moving-background">MY LIBRARY</h3>
             <div class="current_read_container">
                 @if (Model != null && Model.Count > 0)
                 {
                     @foreach (var library in Model)
                     {
-                        <div class="current_item me-2">
-                            @if (library != null && library.Story != null)
-                            {
-                                if (library.Story.Medium != null)
+                        <a href="~/Story/Detail?idStory=@library.StoryId" class="current_item text-decoration-none text-dark w-50 me-2">
+                            <div>
+                                @if (library != null && library.Story != null)
                                 {
-                                    <img src="@Url.Content("~/storyImg/" + library.Story.Medium.FileName + "." + library.Story.Medium.Extension)"
-                                         alt=""
-                                         class="w-50 ms-5" />
-                                }
-                                else
-                                {
-                                    <p>No medium available for this story.</p>
-                                }
+                                    if (library.Story.Medium != null)
+                                    {
+                                        <img src="@Url.Content("~/storyImg/" + library.Story.Medium.FileName + "." + library.Story.Medium.Extension)"
+                                             alt=""
+                                             class="w-50 ms-5" />
+                                    }
+                                    else
+                                    {
+                                        <p>No medium available for this story.</p>
+                                    }
 
-                                <div class="current_content ms-5 mt-3">
-                                    <p class="current_story_name fs-5">
-                                        @library.Story.StoryTitle
-                                    </p>
-                                    <div class="profile_infor d-flex">
-                                        <div class="reader me-3">
-                                            <i class="fa-solid fa-book-open-reader"></i> 123K
-                                        </div>
-                                        <div class="rate me-3">
-                                            <i class="fa-solid fa-star"></i> 100K
-                                        </div>
-                                        <div class="chapter">
-                                            <i class="fa-solid fa-list-ol"></i> 23
-                                        </div>
+                                    <div class="current_content ms-5 mt-3">
+                                        <p class="current_story_name fs-5">
+                                            @library.Story.StoryTitle
+                                        </p>
                                     </div>
-                                </div>
-                            }
-                        </div>
+                                }
+                            </div>
+                        </a>
                     }
                 }
                 else
@@ -177,6 +163,9 @@
 
 @section Scripts {
     <script>
+        document.querySelector('.moving-background').innerHTML = '<span>LIBRARY</span>';
+
+
       document.addEventListener("DOMContentLoaded", function () {
         const navItems = document.querySelectorAll(".subnavigate ul li");
         const contentItems = document.querySelectorAll(".content_table");

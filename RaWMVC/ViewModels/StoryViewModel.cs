@@ -23,7 +23,9 @@ namespace RaWMVC.ViewModels
         public string GenreName { get; set; }
         public int PublishedChapter { get; set; }
         public int DraftChapter { get; set; }
+
         public int TotalReadCount { get; set; }
+        public int TotalLikeCount { get; set; }
         public Guid? CurrentListId { get; set; }
         public bool HasNotifications { get; set; }
 
@@ -32,7 +34,6 @@ namespace RaWMVC.ViewModels
         public string ProfilePicture { get; set; }
         //public Guid chapterId { get; set; }
         public List<ChapterViewModel>? Chapters { get; set; }
-        public List<ReadingList> ReadingLists { get; set; }
         public List<StoryViewModel> SuggestedStories { get; set; }
         public List<StoryViewModel> NewestStories { get; set; }
         public List<StoryViewModel> HotestStories { get; set; }
